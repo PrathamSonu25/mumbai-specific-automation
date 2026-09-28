@@ -15,7 +15,7 @@ DOCS_DIR = os.path.join(os.path.dirname(__file__), 'Documents')
 os.makedirs(GENERATED_DOCS_DIR, exist_ok=True)
 
 def _get_sym(condition):
-    return '☑' if condition else '☐'
+    return '☑' if condition else '\u25A1'
 
 def set_cell_margins(cell, top=80, bottom=80, left=100, right=100):
     tcPr = cell._tc.get_or_add_tcPr()
@@ -177,34 +177,62 @@ def _build_evidence_context(evidence, premise=None, search=None):
     is_cloud = (cat == 'Cloud' or (cat == 'Other' and (evidence.get('cloud_id') or evidence.get('email_id') or 'cloud' in evidence.get('device_name', '').lower() or 'mail' in evidence.get('device_name', '').lower())))
     is_file_folder = (cat in ['FileFolder', 'File/Folder'])
 
-    # Non-mobile collection form: "IF OTHERS SPECIFY"
     if is_cloud:
-        non_mobile_other_specify = evidence.get('email_id') or 'Cloud Email Account'
+        make = 'N/A'
+        model = 'N/A'
+        sn = 'N/A'
+        color = 'N/A'
+        cloud_id_val = evidence.get('email_id') or evidence.get('cloud_id') or evidence.get('device_name') or 'N/A'
+        unique_id = cloud_id_val
+        non_mobile_other_specify = cloud_id_val
+        annexure_e_other_specify = cloud_id_val
+    elif is_file_folder:
+        non_mobile_other_specify = 'File/Folder'
+        annexure_e_other_specify = 'File/Folder'
+        cloud_id_val = ''
     elif cat in ['HDD', 'SSD', 'Pendrive']:
         non_mobile_other_specify = cat
+        annexure_e_other_specify = ''
+        cloud_id_val = ''
     elif cat == 'Other':
         non_mobile_other_specify = evidence.get('device_name') or 'Other'
+        annexure_e_other_specify = evidence.get('device_name') or 'Other'
+        cloud_id_val = ''
     else:
         non_mobile_other_specify = 'N/A'
-
-    # Annexure E / BSA Certificate: "Other: (specify)"
-    if is_file_folder:
-        annexure_e_other_specify = 'File/Folder'
-    elif cat == 'Other' and not is_cloud:
-        annexure_e_other_specify = evidence.get('device_name') or 'Other'
-    else:
         annexure_e_other_specify = ''
+        cloud_id_val = ''
 
     # Officer sealing notes removed per user requirement
     notes_by_officer = ''
     other_specific_notes = evidence.get('other_specific_notes') or evidence.get('remarks') or 'None'
 
-    master_make = evidence.get('master_copy_make', '')
-    master_model = evidence.get('master_copy_model', '')
+    jur = search.get('jurisdiction', '') if search else ''
+    if jur == 'Mumbai':
+        def_master_make = 'Western Digital'
+        def_master_model = 'My Passport Enterprise'
+        def_master_cap = '4 TB'
+        def_working_make = 'Seagate'
+        def_working_model = 'One Touch SSD'
+        def_working_cap = '4 TB'
+    else:
+        def_master_make = 'Western Digital'
+        def_master_model = 'My Passport'
+        def_master_cap = '2 TB'
+        def_working_make = 'Seagate'
+        def_working_model = 'One Touch'
+        def_working_cap = '2 TB'
+
+    master_make = evidence.get('master_copy_make') or def_master_make
+    master_model = evidence.get('master_copy_model') or def_master_model
+    master_cap = evidence.get('master_copy_capacity') or def_master_cap
+    master_sn = evidence.get('master_copy_sn') or ''
     master_make_model = f"{master_make} {master_model}".strip()
 
-    working_make = evidence.get('working_copy_make', '')
-    working_model = evidence.get('working_copy_model', '')
+    working_make = evidence.get('working_copy_make') or def_working_make
+    working_model = evidence.get('working_copy_model') or def_working_model
+    working_cap = evidence.get('working_copy_capacity') or def_working_cap
+    working_sn = evidence.get('working_copy_sn') or ''
     working_make_model = f"{working_make} {working_model}".strip()
 
     is_owner_val = evidence.get('is_owner') or 'Yes'
@@ -259,16 +287,17 @@ def _build_evidence_context(evidence, premise=None, search=None):
         # Hardware specs
         'make': make,
         'model': model,
-        'make_model': f'{make} {model}'.strip(),
+        'make_model': 'N/A' if is_cloud else f'{make} {model}'.strip(),
         'serial_number': sn,
         'capacity': evidence.get('capacity', ''),
-        'color': evidence.get('color', ''),
-        'os': evidence.get('os', ''),
+        'color': color if is_cloud else evidence.get('color', ''),
+        'os': 'N/A' if is_cloud else evidence.get('os', ''),
         'owner_user': evidence.get('owner_user', ''),
         'owner_relation': evidence.get('owner_relation', ''),
         'unique_id': unique_id,
         'email_id': evidence.get('email_id', ''),
-        'cloud_id': '' if is_cloud else evidence.get('cloud_id', ''),
+        'cloud_id': cloud_id_val if is_cloud else evidence.get('cloud_id', ''),
+        'other_cloud_id': cloud_id_val if is_cloud else '',
         'ip_address': '' if is_cloud else evidence.get('ip_address', ''),
         'domain_name': '' if is_cloud else evidence.get('domain_name', ''),
         
@@ -303,6 +332,10 @@ def _build_evidence_context(evidence, premise=None, search=None):
         'hash_sha256': _get_sym(has_sha256),
         'hash_md5': _get_sym(has_md5),
         'hash_other': _get_sym(has_other),
+        'cb_sha1': _get_sym(has_sha1),
+        'cb_sha256': _get_sym(has_sha256),
+        'cb_md5': _get_sym(has_md5),
+        'cb_other_hash': _get_sym(has_other),
         
         # Mobile specific
         'imei1': imei1,
@@ -324,13 +357,17 @@ def _build_evidence_context(evidence, premise=None, search=None):
         'master_copy_make': master_make,
         'master_copy_model': master_model,
         'master_copy_make_model': master_make_model,
-        'master_copy_sn': evidence.get('master_copy_sn', ''),
-        'master_copy_capacity': evidence.get('master_copy_capacity', ''),
+        'master_copy_sn': master_sn,
+        'master_copy_capacity': master_cap,
+        'master_capacity': master_cap,
+        'master_model': master_model,
         'working_copy_make': working_make,
         'working_copy_model': working_model,
         'working_copy_make_model': working_make_model,
-        'working_copy_sn': evidence.get('working_copy_sn', ''),
-        'working_copy_capacity': evidence.get('working_copy_capacity', ''),
+        'working_copy_sn': working_sn,
+        'working_copy_capacity': working_cap,
+        'working_capacity': working_cap,
+        'working_model': working_model,
         
         # Returned & Witness
         'returned_yes_sym': _get_sym(evidence.get('device_returned') == 'Y'),
@@ -339,25 +376,26 @@ def _build_evidence_context(evidence, premise=None, search=None):
         'returned_time': evidence.get('returned_time', ''),
         'witness_yes_sym': _get_sym(evidence.get('witness_signature_taken') == 'Y'),
         'witness_no_sym': _get_sym(evidence.get('witness_signature_taken') == 'N'),
-        'notes_by_officer': notes_by_officer,
+        'notes_by_officer': other_specific_notes,
         'other_specific_notes': other_specific_notes,
         
         # Annexure E / BSA Certificate specific
         'party_name': evidence.get('party_name') or evidence.get('assessee_name', ''),
-        'party_relation': evidence.get('party_relation') or 'Authorized Representative',
+        'party_father_name': evidence.get('party_father_name') or evidence.get('party_spouse_name') or 'N/A',
+        'party_relation': evidence.get('party_father_name') or evidence.get('party_relation') or 'Authorized Representative',
         'party_residing_at': evidence.get('party_residing_at') or col_addr,
         'expert_name': evidence.get('expert_name') or evidence.get('examiner_name', '') or 'Forensic Expert',
         'expert_father_name': evidence.get('expert_father_name') or 'N/A',
         'expert_designation': evidence.get('expert_designation') or evidence.get('examiner_details', 'Senior Digital Forensic Examiner'),
         'cert_place': evidence.get('cert_place') or (premise.get('premise_name', '') + ', ' + col_addr),
         
-        'cb_computer': _get_sym(cat in ['Laptop', 'Desktop', 'HDD', 'SSD', 'Pendrive']),
-        'cb_cddvd': _get_sym(cat == 'CD/DVD'),
-        'cb_server': _get_sym(cat == 'Server'),
-        'cb_dvr': _get_sym(cat == 'DVR'),
+        'cb_computer': _get_sym(not is_cloud and cat in ['Laptop', 'Desktop', 'HDD', 'SSD', 'Pendrive']),
+        'cb_cddvd': _get_sym(not is_cloud and cat == 'CD/DVD'),
+        'cb_server': _get_sym(not is_cloud and cat == 'Server'),
+        'cb_dvr': _get_sym(not is_cloud and cat == 'DVR'),
         'cb_cloud': _get_sym(is_cloud),
-        'cb_mobile': _get_sym(cat == 'Mobile'),
-        'cb_flash': _get_sym(cat in ['Flash Drive', 'Pendrive']),
+        'cb_mobile': _get_sym(not is_cloud and cat == 'Mobile'),
+        'cb_flash': _get_sym(not is_cloud and cat in ['Flash Drive', 'Pendrive']),
         'cb_other': _get_sym(is_file_folder or (cat == 'Other' and not is_cloud)),
         'annexure_e_other_specify': annexure_e_other_specify,
         
@@ -387,7 +425,9 @@ def generate_evidence_docs(evidence_id):
     # 1. Gujarat routing
     if jurisdiction == 'Gujarat':
         ctx = _build_evidence_context(evidence, premise, search)
-        tpl_path = os.path.join(TEMPLATES_DOCX_DIR, 'annexure_e.docx')
+        tpl_path = os.path.join(TEMPLATES_DOCX_DIR, 'annexure_e_Gujarat.docx')
+        if not os.path.exists(tpl_path):
+            tpl_path = os.path.join(TEMPLATES_DOCX_DIR, 'annexure_e.docx')
         tpl = DocxTemplate(tpl_path)
         tpl.render({'evidences': [ctx]})
         out_name = f'Annexure_E_{evidence_id}.docx'
@@ -432,6 +472,17 @@ def generate_evidence_docs(evidence_id):
     # 3. Delhi routing
     ctx = _build_evidence_context(evidence, premise, search)
     
+    if cat == 'Cloud':
+        delhi_e_tpl = os.path.join(TEMPLATES_DOCX_DIR, 'annexure_e_delhi.docx')
+        if not os.path.exists(delhi_e_tpl):
+            delhi_e_tpl = os.path.join(TEMPLATES_DOCX_DIR, 'annexure_e.docx')
+        e_tpl = DocxTemplate(delhi_e_tpl)
+        e_tpl.render({'evidences': [ctx]})
+        e_path = os.path.join(GENERATED_DOCS_DIR, f'Annexure_E_{evidence_id}.docx')
+        e_tpl.save(e_path)
+        generated_files.append(e_path)
+        return {'files': generated_files, 'zip_path': None}
+
     if cat == 'Mobile':
         c_tpl = DocxTemplate(os.path.join(TEMPLATES_DOCX_DIR, 'annexure_c.docx'))
         c_tpl.render(ctx)
@@ -445,7 +496,10 @@ def generate_evidence_docs(evidence_id):
         d_tpl.save(d_path)
         generated_files.append(d_path)
         
-        e_tpl = DocxTemplate(os.path.join(TEMPLATES_DOCX_DIR, 'annexure_e.docx'))
+        delhi_e_tpl = os.path.join(TEMPLATES_DOCX_DIR, 'annexure_e_delhi.docx')
+        if not os.path.exists(delhi_e_tpl):
+            delhi_e_tpl = os.path.join(TEMPLATES_DOCX_DIR, 'annexure_e.docx')
+        e_tpl = DocxTemplate(delhi_e_tpl)
         e_tpl.render({'evidences': [ctx]})
         e_path = os.path.join(GENERATED_DOCS_DIR, f'Annexure_E_{evidence_id}.docx')
         e_tpl.save(e_path)
@@ -464,7 +518,10 @@ def generate_evidence_docs(evidence_id):
         c_tpl.save(c_path)
         generated_files.append(c_path)
         
-        e_tpl = DocxTemplate(os.path.join(TEMPLATES_DOCX_DIR, 'annexure_e.docx'))
+        delhi_e_tpl = os.path.join(TEMPLATES_DOCX_DIR, 'annexure_e_delhi.docx')
+        if not os.path.exists(delhi_e_tpl):
+            delhi_e_tpl = os.path.join(TEMPLATES_DOCX_DIR, 'annexure_e.docx')
+        e_tpl = DocxTemplate(delhi_e_tpl)
         e_tpl.render({'evidences': [ctx]})
         e_path = os.path.join(GENERATED_DOCS_DIR, f'Annexure_E_{evidence_id}.docx')
         e_tpl.save(e_path)
@@ -495,7 +552,16 @@ def generate_search_annexure_e(search_id):
     if not all_evidence_contexts:
         raise ValueError(f'No evidence found under search {search_id}')
         
-    tpl_path = os.path.join(TEMPLATES_DOCX_DIR, 'annexure_e.docx')
+    jur = search.get('jurisdiction', '')
+    if jur == 'Gujarat':
+        tpl_path = os.path.join(TEMPLATES_DOCX_DIR, 'annexure_e_Gujarat.docx')
+    elif jur == 'Delhi':
+        tpl_path = os.path.join(TEMPLATES_DOCX_DIR, 'annexure_e_delhi.docx')
+    else:
+        tpl_path = os.path.join(TEMPLATES_DOCX_DIR, 'annexure_e.docx')
+    if not os.path.exists(tpl_path):
+        tpl_path = os.path.join(TEMPLATES_DOCX_DIR, 'annexure_e.docx')
+        
     tpl = DocxTemplate(tpl_path)
     tpl.render({'evidences': all_evidence_contexts})
     
@@ -602,6 +668,152 @@ def generate_premise_annexure_f(premise_id):
     })
     
     out_name = f'Annexure_F_Premise_{premise_id}.docx'
+    out_path = os.path.join(GENERATED_DOCS_DIR, out_name)
+    tpl.save(out_path)
+    return out_path
+
+def generate_cloud_annexure_e(cloud_evidence_id):
+    ce = excel_db.get_cloud_evidence(cloud_evidence_id)
+    if not ce:
+        raise ValueError(f'Cloud evidence {cloud_evidence_id} not found')
+        
+    premise = excel_db.get_premise(ce.get('premise_id', '')) or {}
+    search = excel_db.get_search(premise.get('search_id', '')) or {}
+    jurisdiction = search.get('jurisdiction', 'Delhi')
+
+    cloud_id_val = ce.get('cloud_id') or ce.get('device_imaged', '')
+    source_val = ce.get('source', 'Cloud Platform')
+
+    col_date = ce.get('collection_date') or premise.get('date') or search.get('date') or ''
+    col_time = ce.get('collection_time') or premise.get('time') or ''
+    col_addr = premise.get('address') or ''
+    cert_place = ce.get('cert_place') or (premise.get('premise_name', '') + ', ' + col_addr)
+
+    hash_algo = ce.get('hash_algorithm', 'SHA256')
+    md5_val = ce.get('md5_hash', '').strip()
+    sha1_val = ce.get('sha1_hash', '').strip()
+    sha256_val = ce.get('sha256_hash_1', '').strip()
+
+    hash_parts = []
+    if md5_val:
+        hash_parts.append(f"MD5: {md5_val}")
+    if sha1_val:
+        hash_parts.append(f"SHA1: {sha1_val}")
+    if sha256_val:
+        hash_parts.append(f"SHA256: {sha256_val}")
+    hash_val = ', '.join(hash_parts) if hash_parts else 'N/A'
+
+    has_md5 = bool(md5_val) or (hash_algo == 'MD5')
+    has_sha1 = bool(sha1_val) or (hash_algo == 'SHA1')
+    has_sha256 = bool(sha256_val) or (hash_algo == 'SHA256')
+    has_other = (hash_algo == 'Other') or (not has_md5 and not has_sha1 and not has_sha256)
+
+    control = [c.strip() for c in ce.get('device_control', 'Owned').split(',') if c.strip()]
+    if not control:
+        control = ['Owned']
+
+    other_spec = f"{source_val} - {cloud_id_val}".strip(' -')
+
+    ctx = {
+        'evidence_id': cloud_evidence_id,
+        'case_name': search.get('case_name', ''),
+        'premise_name': premise.get('premise_name', ''),
+        'search_warrant_details': search.get('search_warrant_details') or f"SW/{search.get('case_name', '')}",
+        'collection_date': col_date,
+        'collection_time': col_time,
+        'collection_address': col_addr,
+        'cert_place': cert_place,
+        'place': cert_place,
+        'authorised_officer': ce.get('authorised_officer') or search.get('authorised_officer', ''),
+        'device_name': f"{source_val} ({cloud_id_val})",
+        
+        # Hard requirement: Make, Model, S/N, Color are N/A for cloud
+        'make': 'N/A',
+        'model': 'N/A',
+        'make_model': 'N/A',
+        'serial_number': 'N/A',
+        'color': 'N/A',
+        'capacity': ce.get('size_of_data', 'N/A'),
+        'unique_id': cloud_id_val,
+        'email_id': cloud_id_val,
+        'cloud_id': cloud_id_val,
+        
+        # In other specify: cloud id / source details
+        'other_specify': other_spec,
+        'annexure_e_other_specify': other_spec,
+        'other_cloud_id': cloud_id_val,
+        
+        # Checkboxes for categories
+        'cb_computer': _get_sym(False),
+        'cb_cddvd': _get_sym(False),
+        'cb_server': _get_sym(False),
+        'cb_dvr': _get_sym(False),
+        'cb_cloud': _get_sym(True),
+        'cb_mobile': _get_sym(False),
+        'cb_flash': _get_sym(False),
+        'cb_other': _get_sym(False),
+        
+        # Lawful Control
+        'ctrl_owned': _get_sym('Owned' in control),
+        'ctrl_maintained': _get_sym('Maintained' in control),
+        'ctrl_managed': _get_sym('Managed' in control),
+        'ctrl_operated': _get_sym('Operated' in control),
+        
+        # Hashes
+        'md5_hash': md5_val,
+        'sha1_hash': sha1_val,
+        'sha256_hash_1': sha256_val,
+        'hash_value': hash_val,
+        'hash_values_seq': hash_val,
+        'hash_sha1': _get_sym(has_sha1),
+        'hash_sha256': _get_sym(has_sha256),
+        'hash_md5': _get_sym(has_md5),
+        'hash_other': _get_sym(has_other),
+        'cb_sha1': _get_sym(has_sha1),
+        'cb_sha256': _get_sym(has_sha256),
+        'cb_md5': _get_sym(has_md5),
+        'cb_other_hash': _get_sym(has_other),
+        
+        # Part A (Party declaration)
+        'party_name': ce.get('party_name') or ce.get('assessee_name', ''),
+        'party_father_name': ce.get('party_father_name', 'N/A'),
+        'party_relation': ce.get('party_relation', 'Authorized Representative'),
+        'party_residing_at': ce.get('party_residing_at') or col_addr,
+        
+        # Part B (Expert declaration)
+        'expert_name': ce.get('expert_name') or 'Forensic Expert',
+        'expert_father_name': ce.get('expert_father_name', 'N/A'),
+        'expert_designation': ce.get('expert_designation', 'Senior Digital Forensic Examiner'),
+        
+        # Destination storage / Master copy defaults (N/A)
+        'master_copy_make': 'N/A',
+        'master_copy_model': 'N/A',
+        'master_copy_make_model': 'N/A',
+        'master_copy_sn': 'N/A',
+        'master_copy_capacity': 'N/A',
+        'working_copy_make': 'N/A',
+        'working_copy_model': 'N/A',
+        'working_copy_make_model': 'N/A',
+        'working_copy_sn': 'N/A',
+        'working_copy_capacity': 'N/A',
+        
+        # Notes
+        'other_specific_notes': ce.get('other_specific_notes') or f"Cloud data extracted: {other_spec} (Format: {ce.get('export_format', 'PST/MBOX')}, Size: {ce.get('size_of_data', '')})"
+    }
+
+    if jurisdiction == 'Delhi':
+        tpl_path = os.path.join(TEMPLATES_DOCX_DIR, 'annexure_e_delhi.docx')
+    elif jurisdiction == 'Gujarat':
+        tpl_path = os.path.join(TEMPLATES_DOCX_DIR, 'annexure_e_Gujarat.docx')
+    else:
+        tpl_path = os.path.join(TEMPLATES_DOCX_DIR, 'annexure_e.docx')
+    if not os.path.exists(tpl_path):
+        tpl_path = os.path.join(TEMPLATES_DOCX_DIR, 'annexure_e.docx')
+        
+    tpl = DocxTemplate(tpl_path)
+    tpl.render({'evidences': [ctx]})
+    
+    out_name = f'Annexure_E_Cloud_{cloud_evidence_id}.docx'
     out_path = os.path.join(GENERATED_DOCS_DIR, out_name)
     tpl.save(out_path)
     return out_path

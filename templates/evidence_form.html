@@ -331,12 +331,12 @@
         <div class="form-group">
           <label class="form-label" for="master_copy_make">Master Copy Make</label>
           <input type="text" id="master_copy_make" name="master_copy_make" class="form-control" 
-                 value="{{ evidence.master_copy_make if evidence else 'Western Digital' }}" placeholder="Make (e.g. Western Digital)" />
+                 value="{{ evidence.master_copy_make if evidence and evidence.master_copy_make else 'Western Digital' }}" placeholder="Make (e.g. Western Digital)" />
         </div>
         <div class="form-group">
           <label class="form-label" for="master_copy_model">Master Copy Model</label>
           <input type="text" id="master_copy_model" name="master_copy_model" class="form-control" 
-                 value="{{ evidence.master_copy_model if evidence else 'My Passport' }}" placeholder="Model (e.g. My Passport Ultra)" />
+                 value="{{ evidence.master_copy_model if evidence and evidence.master_copy_model else 'My Passport' }}" placeholder="Model (e.g. My Passport Ultra)" />
         </div>
         <div class="form-group">
           <label class="form-label" for="master_copy_sn">Master Copy Serial Number</label>
@@ -346,18 +346,18 @@
         <div class="form-group">
           <label class="form-label" for="master_copy_capacity">Master Copy Capacity</label>
           <input type="text" id="master_copy_capacity" name="master_copy_capacity" class="form-control" 
-                 value="{{ evidence.master_copy_capacity if evidence else '2 TB' }}" placeholder="Capacity (e.g. 2 TB USB 3.0)" />
+                 value="{{ evidence.master_copy_capacity if evidence and evidence.master_copy_capacity else '2 TB' }}" placeholder="Capacity (e.g. 2 TB USB 3.0)" />
         </div>
 
         <div class="form-group">
           <label class="form-label" for="working_copy_make">Working Copy Make</label>
           <input type="text" id="working_copy_make" name="working_copy_make" class="form-control" 
-                 value="{{ evidence.working_copy_make if evidence else 'Seagate' }}" placeholder="Make (e.g. Seagate)" />
+                 value="{{ evidence.working_copy_make if evidence and evidence.working_copy_make else 'Seagate' }}" placeholder="Make (e.g. Seagate)" />
         </div>
         <div class="form-group">
           <label class="form-label" for="working_copy_model">Working Copy Model</label>
           <input type="text" id="working_copy_model" name="working_copy_model" class="form-control" 
-                 value="{{ evidence.working_copy_model if evidence else 'One Touch' }}" placeholder="Model (e.g. One Touch SSD)" />
+                 value="{{ evidence.working_copy_model if evidence and evidence.working_copy_model else 'One Touch' }}" placeholder="Model (e.g. One Touch SSD)" />
         </div>
         <div class="form-group">
           <label class="form-label" for="working_copy_sn">Working Copy Serial Number</label>
@@ -367,7 +367,7 @@
         <div class="form-group">
           <label class="form-label" for="working_copy_capacity">Working Copy Capacity</label>
           <input type="text" id="working_copy_capacity" name="working_copy_capacity" class="form-control" 
-                 value="{{ evidence.working_copy_capacity if evidence else '2 TB' }}" placeholder="Capacity (e.g. 2 TB USB-C)" />
+                 value="{{ evidence.working_copy_capacity if evidence and evidence.working_copy_capacity else '2 TB' }}" placeholder="Capacity (e.g. 2 TB USB-C)" />
         </div>
 
         <!-- 7. DEVICE RETURN & WITNESS -->
@@ -408,24 +408,17 @@
           <small style="color: var(--text-muted); font-size: 0.78rem;">Populates into Annexure E's 'and any other relevant information, if any, about the device/digital record (specify)'. Distinct from officer sealing notes.</small>
         </div>
 
-        <div class="form-group full-width">
-          <label class="form-label">Lawful Device Control (Part A - Party)</label>
-          <div class="form-check-group">
-            {% set curr_control = (evidence.device_control.split(',') if evidence and evidence.device_control else ['Owned', 'Maintained'])|map('trim')|list %}
-            {% for opt in control_options %}
-              <label class="form-check">
-                <input type="checkbox" name="device_control_opts" value="{{ opt }}" 
-                       {% if opt in curr_control %}checked{% endif %} />
-                <span>{{ opt }}</span>
-              </label>
-            {% endfor %}
-          </div>
-        </div>
-
         <div class="form-group">
           <label class="form-label" for="party_name">Part A Signatory (Party / Assessee Name)</label>
           <input type="text" id="party_name" name="party_name" class="form-control" 
                  value="{{ evidence.party_name if evidence else (evidence.assessee_name if evidence else search.case_name) }}" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="party_father_name">Party Father / Spouse / Any Second Name</label>
+          <input type="text" id="party_father_name" name="party_father_name" class="form-control" 
+                 value="{{ evidence.party_father_name if evidence else '' }}" 
+                 placeholder="Son / Daughter / Spouse of" />
         </div>
 
         <div class="form-group">

@@ -213,6 +213,30 @@ def new_evidence(premise_id):
 
         control_list = request.form.getlist('device_control_opts')
         form_data['device_control'] = ', '.join(control_list)
+        form_data['party_father_name'] = request.form.get('party_father_name', '').strip()
+        form_data['expert_father_name'] = request.form.get('expert_father_name', '').strip()
+
+        # Ensure default values for master & working copies if left blank
+        jur = search.get('jurisdiction', '')
+        def_master_make = 'Western Digital'
+        def_master_model = 'My Passport Enterprise' if jur == 'Mumbai' else 'My Passport'
+        def_master_cap = '4 TB' if jur == 'Mumbai' else '2 TB'
+        def_working_make = 'Seagate'
+        def_working_model = 'One Touch SSD' if jur == 'Mumbai' else 'One Touch'
+        def_working_cap = '4 TB' if jur == 'Mumbai' else '2 TB'
+
+        if not form_data.get('master_copy_make'):
+            form_data['master_copy_make'] = def_master_make
+        if not form_data.get('master_copy_model'):
+            form_data['master_copy_model'] = def_master_model
+        if not form_data.get('master_copy_capacity'):
+            form_data['master_copy_capacity'] = def_master_cap
+        if not form_data.get('working_copy_make'):
+            form_data['working_copy_make'] = def_working_make
+        if not form_data.get('working_copy_model'):
+            form_data['working_copy_model'] = def_working_model
+        if not form_data.get('working_copy_capacity'):
+            form_data['working_copy_capacity'] = def_working_cap
 
         ev_id = excel_db.save_evidence(form_data)
 
@@ -269,11 +293,50 @@ def new_evidence(premise_id):
     else:
         template_name = 'evidence_form.html'
 
+    def_master_make = 'Western Digital'
+    def_master_model = 'My Passport Enterprise' if jur == 'Mumbai' else 'My Passport'
+    def_master_cap = '4 TB' if jur == 'Mumbai' else '2 TB'
+    def_working_make = 'Seagate'
+    def_working_model = 'One Touch SSD' if jur == 'Mumbai' else 'One Touch'
+    def_working_cap = '4 TB' if jur == 'Mumbai' else '2 TB'
+
+    last_ev = excel_db.get_last_evidence_for_premise(premise_id, search.get('search_id'))
+    initial_evidence = {}
+    if last_ev:
+        # Pre-fill Master and Working Copy details
+        initial_evidence['master_copy_make'] = last_ev.get('master_copy_make') or def_master_make
+        initial_evidence['master_copy_model'] = last_ev.get('master_copy_model') or def_master_model
+        initial_evidence['master_copy_sn'] = last_ev.get('master_copy_sn', '')
+        initial_evidence['master_copy_capacity'] = last_ev.get('master_copy_capacity') or def_master_cap
+        initial_evidence['working_copy_make'] = last_ev.get('working_copy_make') or def_working_make
+        initial_evidence['working_copy_model'] = last_ev.get('working_copy_model') or def_working_model
+        initial_evidence['working_copy_sn'] = last_ev.get('working_copy_sn', '')
+        initial_evidence['working_copy_capacity'] = last_ev.get('working_copy_capacity') or def_working_cap
+
+        # Pre-fill Annexure E / BSA Signatory details
+        initial_evidence['party_name'] = last_ev.get('party_name', '') or last_ev.get('assessee_name', '')
+        initial_evidence['party_father_name'] = last_ev.get('party_father_name', '')
+        initial_evidence['party_relation'] = last_ev.get('party_relation', '')
+        initial_evidence['party_residing_at'] = last_ev.get('party_residing_at', '')
+        initial_evidence['expert_name'] = last_ev.get('expert_name', '') or last_ev.get('examiner_name', '')
+        initial_evidence['expert_father_name'] = last_ev.get('expert_father_name', '')
+        initial_evidence['expert_designation'] = last_ev.get('expert_designation', '') or last_ev.get('examiner_details', '')
+        initial_evidence['cert_place'] = last_ev.get('cert_place', '')
+        initial_evidence['authorised_officer'] = last_ev.get('authorised_officer', '')
+        initial_evidence['other_specific_notes'] = last_ev.get('other_specific_notes', '')
+    else:
+        initial_evidence['master_copy_make'] = def_master_make
+        initial_evidence['master_copy_model'] = def_master_model
+        initial_evidence['master_copy_capacity'] = def_master_cap
+        initial_evidence['working_copy_make'] = def_working_make
+        initial_evidence['working_copy_model'] = def_working_model
+        initial_evidence['working_copy_capacity'] = def_working_cap
+
     return render_template(
         template_name,
         search=search,
         premise=premise,
-        evidence=None,
+        evidence=initial_evidence if initial_evidence else None,
         sub_evidences=[],
         custody_rows=[],
         categories=config.EVIDENCE_CATEGORIES,
@@ -314,6 +377,30 @@ def edit_evidence(evidence_id):
 
         control_list = request.form.getlist('device_control_opts')
         form_data['device_control'] = ', '.join(control_list)
+        form_data['party_father_name'] = request.form.get('party_father_name', '').strip()
+        form_data['expert_father_name'] = request.form.get('expert_father_name', '').strip()
+
+        # Ensure default values for master & working copies if left blank
+        jur = search.get('jurisdiction', '')
+        def_master_make = 'Western Digital'
+        def_master_model = 'My Passport Enterprise' if jur == 'Mumbai' else 'My Passport'
+        def_master_cap = '4 TB' if jur == 'Mumbai' else '2 TB'
+        def_working_make = 'Seagate'
+        def_working_model = 'One Touch SSD' if jur == 'Mumbai' else 'One Touch'
+        def_working_cap = '4 TB' if jur == 'Mumbai' else '2 TB'
+
+        if not form_data.get('master_copy_make'):
+            form_data['master_copy_make'] = def_master_make
+        if not form_data.get('master_copy_model'):
+            form_data['master_copy_model'] = def_master_model
+        if not form_data.get('master_copy_capacity'):
+            form_data['master_copy_capacity'] = def_master_cap
+        if not form_data.get('working_copy_make'):
+            form_data['working_copy_make'] = def_working_make
+        if not form_data.get('working_copy_model'):
+            form_data['working_copy_model'] = def_working_model
+        if not form_data.get('working_copy_capacity'):
+            form_data['working_copy_capacity'] = def_working_cap
 
         excel_db.save_evidence(form_data)
 
@@ -414,41 +501,66 @@ def new_cloud_evidence(premise_id):
     search = excel_db.get_search(premise['search_id'])
 
     if request.method == 'POST':
-        sn = request.form.get('sn', '').strip()
-        device_imaged = request.form.get('device_imaged', '').strip()
-        size_of_data = request.form.get('size_of_data', '').strip()
-        export_format = request.form.get('export_format', '').strip()
-        source = request.form.get('source', '').strip()
+        form_data = request.form.to_dict()
+        form_data['premise_id'] = premise_id
 
+        control_list = request.form.getlist('device_control_opts')
+        form_data['device_control'] = ', '.join(control_list) if control_list else 'Owned'
+
+        if not form_data.get('cloud_id'):
+            form_data['cloud_id'] = form_data.get('device_imaged', '')
+
+        device_imaged = form_data.get('device_imaged', '').strip()
         if not device_imaged:
             flash('Device / Account Imaged is required.', 'danger')
             return redirect(url_for('new_cloud_evidence', premise_id=premise_id))
 
-        ce_id = excel_db.save_cloud_evidence({
-            'premise_id': premise_id,
-            'sn': sn,
-            'device_imaged': device_imaged,
-            'size_of_data': size_of_data,
-            'export_format': export_format,
-            'source': source
-        })
-        flash(f'Cloud evidence {ce_id} added.', 'success')
+        ce_id = excel_db.save_cloud_evidence(form_data)
+        flash(f'Cloud evidence {ce_id} added successfully.', 'success')
         return redirect(url_for('premise_detail', premise_id=premise_id))
 
     existing_clouds = excel_db.get_cloud_evidences(premise_id)
     next_sn = str(len(existing_clouds) + 1)
 
+    last_ev = excel_db.get_last_evidence_for_premise(premise_id, search.get('search_id'))
+    last_ce = existing_clouds[-1] if existing_clouds else None
+
+    initial_cloud = {
+        'sn': next_sn,
+        'source': 'Google Workspace (Gmail)',
+        'export_format': 'PST / MBOX',
+        'collection_date': premise.get('date') or search.get('date', ''),
+        'collection_time': premise.get('time', ''),
+        'cert_place': premise.get('premise_name', '') + ', ' + premise.get('address', ''),
+        'authorised_officer': search.get('authorised_officer', ''),
+        'hash_algorithm': 'SHA256',
+        'device_control': 'Owned',
+        'party_name': (last_ev.get('party_name') or last_ev.get('assessee_name')) if last_ev else '',
+        'party_father_name': last_ev.get('party_father_name', '') if last_ev else '',
+        'party_relation': last_ev.get('party_relation', 'Authorized Representative') if last_ev else 'Authorized Representative',
+        'party_residing_at': last_ev.get('party_residing_at', '') if last_ev else (premise.get('address', '')),
+        'expert_name': last_ev.get('expert_name', '') if last_ev else '',
+        'expert_father_name': last_ev.get('expert_father_name', '') if last_ev else '',
+        'expert_designation': last_ev.get('expert_designation', 'Senior Digital Forensic Examiner') if last_ev else 'Senior Digital Forensic Examiner',
+    }
+    if last_ce:
+        for k in ['party_name', 'party_father_name', 'party_relation', 'party_residing_at', 'expert_name', 'expert_father_name', 'expert_designation', 'cert_place', 'authorised_officer']:
+            if last_ce.get(k) and not initial_cloud.get(k):
+                initial_cloud[k] = last_ce.get(k)
+
     return render_template(
         'cloud_evidence_form.html',
         search=search,
         premise=premise,
-        cloud_evidence=None,
-        next_sn=next_sn
+        cloud_evidence=initial_cloud,
+        next_sn=next_sn,
+        hash_algorithms=config.HASH_ALGORITHMS,
+        control_options=config.DEVICE_CONTROL_OPTIONS
     )
 
 @app.route('/cloud/<cloud_id>/edit', methods=['GET', 'POST'])
 def edit_cloud_evidence(cloud_id):
-    ce = excel_db.get_by_id('CloudEvidences', cloud_id)
+    ce = excel_db.get_cloud_evidence(cloud_id)
     if not ce:
         flash('Cloud evidence not found.', 'danger')
         return redirect(url_for('index'))
@@ -456,14 +568,18 @@ def edit_cloud_evidence(cloud_id):
     search = excel_db.get_search(premise['search_id'])
 
     if request.method == 'POST':
-        ce['sn'] = request.form.get('sn', '').strip()
-        ce['device_imaged'] = request.form.get('device_imaged', '').strip()
-        ce['size_of_data'] = request.form.get('size_of_data', '').strip()
-        ce['export_format'] = request.form.get('export_format', '').strip()
-        ce['source'] = request.form.get('source', '').strip()
+        form_data = request.form.to_dict()
+        form_data['cloud_evidence_id'] = cloud_id
+        form_data['premise_id'] = ce.get('premise_id')
 
-        excel_db.save_cloud_evidence(ce)
-        flash('Cloud evidence updated.', 'success')
+        control_list = request.form.getlist('device_control_opts')
+        form_data['device_control'] = ', '.join(control_list) if control_list else 'Owned'
+
+        if not form_data.get('cloud_id'):
+            form_data['cloud_id'] = form_data.get('device_imaged', '')
+
+        excel_db.save_cloud_evidence(form_data)
+        flash('Cloud evidence updated successfully.', 'success')
         return redirect(url_for('premise_detail', premise_id=premise['premise_id']))
 
     return render_template(
@@ -471,18 +587,32 @@ def edit_cloud_evidence(cloud_id):
         search=search,
         premise=premise,
         cloud_evidence=ce,
-        next_sn=ce.get('sn', '1')
+        next_sn=ce.get('sn', '1'),
+        hash_algorithms=config.HASH_ALGORITHMS,
+        control_options=config.DEVICE_CONTROL_OPTIONS
     )
 
 @app.route('/cloud/<cloud_id>/delete', methods=['POST'])
 def delete_cloud_evidence_route(cloud_id):
-    ce = excel_db.get_by_id('CloudEvidences', cloud_id)
+    ce = excel_db.get_cloud_evidence(cloud_id)
     premise_id = ce.get('premise_id') if ce else None
     excel_db.delete_cloud_evidence(cloud_id)
     flash(f'Cloud evidence {cloud_id} deleted.', 'info')
     if premise_id:
         return redirect(url_for('premise_detail', premise_id=premise_id))
     return redirect(url_for('index'))
+
+@app.route('/generate/cloud/<cloud_id>/annexure-e')
+def generate_cloud_e(cloud_id):
+    try:
+        out_path = doc_generator.generate_cloud_annexure_e(cloud_id)
+        return send_file(out_path, as_attachment=True)
+    except Exception as e:
+        flash(f'Error generating Cloud Annexure E: {str(e)}', 'danger')
+        ce = excel_db.get_cloud_evidence(cloud_id)
+        if ce and ce.get('premise_id'):
+            return redirect(url_for('premise_detail', premise_id=ce['premise_id']))
+        return redirect(url_for('index'))
 
 # ----------------- DOCUMENT GENERATION ROUTES -----------------
 @app.route('/generate/evidence/<evidence_id>')

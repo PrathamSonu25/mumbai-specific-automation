@@ -366,15 +366,9 @@ def test_detailed_rules():
     assert "Son/daughter/spouse of Shri Rameshwar Verma" in bsa_full_text, "Expert Father Name not found in Part B!"
     assert "do hereby solemnly affirm and sincerely state and submit as follows: —" in bsa_full_text
     
-    # Check that Part B does not have residing/employed at company
-    part_b_start = False
-    for p in doc_bsa.paragraphs:
-        txt = p.text.strip()
-        if 'PART B' in txt:
-            part_b_start = True
-        if part_b_start and 'residing/employed at' in txt:
-            raise AssertionError(f"Found 'residing/employed at' in Part B: {txt}")
-    print("Part B contains 'Son/daughter/spouse of Shri Rameshwar Verma' and NO company/residing clause!")
+    # Check that Part B has residing/employed at R S Patel & Co per user specification
+    assert "residing/employed at R S Patel & Co" in bsa_full_text, "Part B must state 'residing/employed at R S Patel & Co'!"
+    print("Part B contains 'Son/daughter/spouse of Shri Rameshwar Verma' and 'residing/employed at R S Patel & Co.'!")
 
     # 2. Check Hashes Sequence (MD5, SHA1, SHA256)
     ctx_d1 = doc_generator._build_evidence_context(excel_db.get_evidence(desktop_ids[0]))

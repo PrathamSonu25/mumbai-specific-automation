@@ -40,7 +40,7 @@ SHEET_SCHEMAS = {
             'authorised_officer', 'hash_algorithm', 'device_control', 'cert_place',
             'party_name', 'party_relation', 'party_residing_at', 'expert_name', 'expert_designation',
             'is_owner', 'email_id', 'cloud_id', 'ip_address', 'domain_name', 'other_specific_notes', 'expert_father_name',
-            'location_found'
+            'location_found', 'party_father_name'
         ]
     },
     'SubEvidences': {
@@ -60,7 +60,11 @@ SHEET_SCHEMAS = {
         'pk': 'cloud_evidence_id',
         'columns': [
             'cloud_evidence_id', 'premise_id', 'sn', 'device_imaged', 'size_of_data',
-            'export_format', 'source'
+            'export_format', 'source', 'cloud_id', 'collection_date', 'collection_time',
+            'party_name', 'party_father_name', 'party_relation', 'party_residing_at',
+            'expert_name', 'expert_father_name', 'expert_designation', 'cert_place',
+            'authorised_officer', 'hash_algorithm', 'md5_hash', 'sha1_hash', 'sha256_hash_1',
+            'device_control', 'other_specific_notes'
         ]
     }
 }
@@ -76,8 +80,20 @@ THIN_BORDER = Border(
     bottom=Side(style='thin', color='D9D9D9')
 )
 
+_db_initialized = False
+_cache = {}
+
+def _invalidate_cache(sheet_name=None):
+    if sheet_name:
+        _cache.pop(sheet_name, None)
+    else:
+        _cache.clear()
+
 def init_db(force=False):
+    global _db_initialized
     with _db_lock:
+        if _db_initialized and not force:
+            return
         os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
         if os.path.exists(DATABASE_PATH) and not force:
             # Check for missing columns in existing database and add them
@@ -101,6 +117,7 @@ def init_db(force=False):
             if changed:
                 wb.save(DATABASE_PATH)
             wb.close()
+            _db_initialized = True
             return
 
         wb = openpyxl.Workbook()
@@ -121,33 +138,38 @@ def init_db(force=False):
 
         wb.save(DATABASE_PATH)
         wb.close()
+        _db_initialized = True
 
 def _load_workbook():
-    init_db()
+    if not _db_initialized:
+        init_db()
     return openpyxl.load_workbook(DATABASE_PATH)
 
 def generate_next_id(sheet_name):
     prefix = ID_PREFIXES.get(sheet_name, 'ID')
     length = ID_LENGTHS.get(sheet_name, 3)
-    wb = _load_workbook()
-    ws = wb[sheet_name]
+    items = get_all(sheet_name)
+    pk = SHEET_SCHEMAS[sheet_name]['pk']
     max_num = 0
-
-    for row in range(2, ws.max_row + 1):
-        val = ws.cell(row=row, column=1).value
-        if val is not None:
-            val_str = str(val).strip()
-            if val_str.startswith(prefix):
-                num_part = val_str[len(prefix):]
-                if num_part.isdigit():
-                    max_num = max(max_num, int(num_part))
-
-    wb.close()
+    for item in items:
+        val_str = str(item.get(pk, '')).strip()
+        if val_str.startswith(prefix):
+            num_part = val_str[len(prefix):]
+            if num_part.isdigit():
+                max_num = max(max_num, int(num_part))
     return f'{prefix}{max_num + 1:0{length}d}'
 
 def get_all(sheet_name):
     with _db_lock:
-        wb = _load_workbook()
+        if not _db_initialized:
+            init_db()
+        if sheet_name in _cache:
+            return [dict(x) for x in _cache[sheet_name]]
+
+        if not os.path.exists(DATABASE_PATH):
+            return []
+
+        wb = openpyxl.load_workbook(DATABASE_PATH, data_only=True)
         if sheet_name not in wb.sheetnames:
             wb.close()
             return []
@@ -167,7 +189,8 @@ def get_all(sheet_name):
             rows.append(item)
 
         wb.close()
-        return rows
+        _cache[sheet_name] = rows
+        return [dict(x) for x in rows]
 
 def get_by_id(sheet_name, id_value):
     if not id_value:
@@ -224,6 +247,7 @@ def insert_row(sheet_name, data):
 
         wb.save(DATABASE_PATH)
         wb.close()
+        _invalidate_cache(sheet_name)
         return data[pk]
 
 def update_row(sheet_name, id_value, data):
@@ -253,6 +277,7 @@ def update_row(sheet_name, id_value, data):
 
         wb.save(DATABASE_PATH)
         wb.close()
+        _invalidate_cache(sheet_name)
         return True
 
 def delete_row(sheet_name, id_value):
@@ -271,10 +296,24 @@ def delete_row(sheet_name, id_value):
             ws.delete_rows(target_row, 1)
             wb.save(DATABASE_PATH)
             wb.close()
+            _invalidate_cache(sheet_name)
             return True
 
         wb.close()
         return False
+
+def get_last_evidence_for_premise(premise_id, search_id=None):
+    if premise_id:
+        evs = filter_rows('Evidences', premise_id=premise_id)
+        if evs:
+            return evs[-1]
+    if search_id:
+        premises = filter_rows('Premises', search_id=search_id)
+        for p in reversed(premises):
+            evs = filter_rows('Evidences', premise_id=p['premise_id'])
+            if evs:
+                return evs[-1]
+    return None
 
 # Entity-specific helper methods
 def get_searches():
@@ -328,6 +367,19 @@ def get_evidences(premise_id=None):
 def get_evidence(evidence_id):
     return get_by_id('Evidences', evidence_id)
 
+def get_last_evidence_for_premise(premise_id, search_id=None):
+    if premise_id:
+        evs = filter_rows('Evidences', premise_id=premise_id)
+        if evs:
+            return evs[-1]
+    if search_id:
+        prems = get_premises(search_id)
+        for p in reversed(prems):
+            evs = filter_rows('Evidences', premise_id=p['premise_id'])
+            if evs:
+                return evs[-1]
+    return None
+
 def save_evidence(data):
     pk = data.get('evidence_id')
     if pk and get_by_id('Evidences', pk):
@@ -372,6 +424,9 @@ def delete_custody_row(custody_id):
 
 def get_cloud_evidences(premise_id):
     return filter_rows('CloudEvidences', premise_id=premise_id)
+
+def get_cloud_evidence(cloud_evidence_id):
+    return get_by_id('CloudEvidences', cloud_evidence_id)
 
 def save_cloud_evidence(data):
     pk = data.get('cloud_evidence_id')

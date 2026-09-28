@@ -33,16 +33,23 @@
           🔗 Generate COC (Annexure 3)
         </a>
       {% endif %}
-    {% else %}
-      <!-- Annexure G (Inventory) - Gujarat & Delhi -->
+    {% elif search.jurisdiction == 'Delhi' %}
+      <!-- Annexure G (Inventory) - Delhi only -->
       <a href="{{ url_for('generate_premise_g', premise_id=premise.premise_id) }}" class="btn btn-warning" style="font-weight: 600;">
         📋 Generate Inventory (Annexure G)
       </a>
 
       <!-- Annexure F (Cloud) - Delhi only -->
-      {% if search.jurisdiction == 'Delhi' and cloud_evidences %}
+      {% if cloud_evidences %}
         <a href="{{ url_for('generate_premise_f', premise_id=premise.premise_id) }}" class="btn btn-success" style="color: white; font-weight: 600;">
           ☁️ Generate Cloud Evidence (Annexure F)
+        </a>
+      {% endif %}
+    {% elif search.jurisdiction == 'Gujarat' %}
+      <!-- Gujarat: Annexure E (BSA Certificate) -->
+      {% if evidences %}
+        <a href="{{ url_for('generate_search_annexure_e_doc', search_id=search.search_id) }}" class="btn btn-success" style="font-weight: 600;">
+          📑 Generate Annexure E (All Evidences)
         </a>
       {% endif %}
     {% endif %}
@@ -182,6 +189,7 @@
                   <td><span class="badge" style="background: #f1f5f9; color: #334155;">{{ ce.export_format }}</span></td>
                   <td><span class="badge" style="background: #fef3c7; color: #92400e;">{{ ce.source }}</span></td>
                   <td style="text-align: right;">
+                    <a href="{{ url_for('generate_cloud_e', cloud_id=ce.cloud_evidence_id) }}" class="btn btn-sm btn-outline-success" title="Download individual Annexure E for this cloud item">📄 Annexure E</a>
                     <a href="{{ url_for('edit_cloud_evidence', cloud_id=ce.cloud_evidence_id) }}" class="btn btn-sm btn-secondary">Edit</a>
                     <form action="{{ url_for('delete_cloud_evidence_route', cloud_id=ce.cloud_evidence_id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Delete this cloud evidence entry?');">
                       <button type="submit" class="btn btn-sm btn-danger">Delete</button>
