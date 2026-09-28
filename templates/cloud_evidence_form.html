@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit Cloud Evidence' if cloud_evidence else 'New Cloud / Email Evidence' }} |  Evidence Automation{% endblock %}
+
+{% block content %}
+<div class="breadcrumbs">
+  <a href="{{ url_for('index') }}">Searches</a>
+  <span>/</span>
+  <a href="{{ url_for('search_detail', search_id=search.search_id) }}">{{ search.case_name }}</a>
+  <span>/</span>
+  <a href="{{ url_for('premise_detail', premise_id=premise.premise_id) }}">{{ premise.premise_name }}</a>
+  <span>/</span>
+  <span>{{ 'Edit Cloud Evidence ' ~ cloud_evidence.cloud_evidence_id if cloud_evidence else 'New Cloud Evidence' }}</span>
+</div>
+
+<div class="card" style="max-width: 650px; margin: 0 auto;">
+  <div class="card-header">
+    <span class="card-title">{{ 'Edit Cloud Evidence (' ~ cloud_evidence.cloud_evidence_id ~ ')' if cloud_evidence else 'Add Cloud / Email Evidence Entry' }}</span>
+    <span class="badge badge-delhi">Annexure F</span>
+  </div>
+  <div class="card-body">
+    <form method="POST">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="sn">Table Serial No.</label>
+          <input type="text" id="sn" name="sn" class="form-control" 
+                 value="{{ cloud_evidence.sn if cloud_evidence else next_sn }}" placeholder="e.g. 1" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="source">Source Platform *</label>
+          <input type="text" id="source" name="source" class="form-control" list="cloud-sources" 
+                 value="{{ cloud_evidence.source if cloud_evidence else 'Google Workspace (Gmail)' }}" required 
+                 placeholder="e.g. Gmail / Outlook 365 / Google Drive" />
+          <datalist id="cloud-sources">
+            <option value="Gmail">
+            <option value="Google Drive">
+            <option value="Microsoft 365 / Outlook">
+            <option value="OneDrive">
+            <option value="iCloud">
+            <option value="Dropbox">
+            <option value="AWS S3">
+            <option value="SAP / ERP Cloud">
+          </datalist>
+        </div>
+
+        <div class="form-group full-width">
+          <label class="form-label" for="device_imaged">Device / Account / Mailbox Imaged *</label>
+          <input type="text" id="device_imaged" name="device_imaged" class="form-control" 
+                 value="{{ cloud_evidence.device_imaged if cloud_evidence else '' }}" required 
+                 placeholder="e.g. director@company.com / Finance Shared Drive / ERP Database" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="size_of_data">Size of Data *</label>
+          <input type="text" id="size_of_data" name="size_of_data" class="form-control" 
+                 value="{{ cloud_evidence.size_of_data if cloud_evidence else '' }}" required 
+                 placeholder="e.g. 12.8 GB" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="export_format">Export Format *</label>
+          <input type="text" id="export_format" name="export_format" class="form-control" 
+                 value="{{ cloud_evidence.export_format if cloud_evidence else 'PST / MBOX' }}" required 
+                 placeholder="e.g. PST, MBOX, EML, ZIP, CSV" />
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <a href="{{ url_for('premise_detail', premise_id=premise.premise_id) }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">Save Cloud Evidence</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

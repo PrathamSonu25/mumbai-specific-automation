@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}{{ search.case_name }}  Evidence Automation{% endblock %}
+
+{% block content %}
+<div class="breadcrumbs">
+  <a href="{{ url_for('index') }}">Searches</a>
+  <span>/</span>
+  <span>{{ search.case_name }} ({{ search.search_id }})</span>
+</div>
+
+<div class="page-header">
+  <div>
+    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.25rem;">
+      <h1 class="page-title">{{ search.case_name }}</h1>
+      <span class="badge badge-{{ search.jurisdiction|lower }}">{{ search.jurisdiction }}</span>
+      <span class="badge" style="background: #f1f5f9; color: #475569;">{{ search.search_id }}</span>
+    </div>
+    <p style="color: var(--text-muted); font-size: 0.85rem;">
+      Date: <strong>{{ search.date }}</strong> | Default Officer: <strong>{{ search.authorised_officer or 'None set' }}</strong>
+    </p>
+  </div>
+  <div class="page-actions">
+    {% if search.jurisdiction == 'Gujarat' %}
+      <a href="{{ url_for('generate_search_annexure_e_doc', search_id=search.search_id) }}" class="btn btn-success" style="font-weight: 600;">
+        📑 Generate Annexure E (All Evidences)
+      </a>
+    {% endif %}
+    <a href="{{ url_for('new_premise', search_id=search.search_id) }}" class="btn btn-primary">+ Add Premise</a>
+    <a href="{{ url_for('edit_search', search_id=search.search_id) }}" class="btn btn-secondary">Edit Search</a>
+  </div>
+</div>
+
+{% if search.remarks %}
+  <div class="card" style="margin-bottom: 1.25rem;">
+    <div class="card-body" style="padding: 0.85rem 1.25rem; font-size: 0.875rem; color: var(--text-muted);">
+      <strong>Remarks:</strong> {{ search.remarks }}
+    </div>
+  </div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Premises Searched ({{ premises|length }})</span>
+    <a href="{{ url_for('new_premise', search_id=search.search_id) }}" class="btn btn-sm btn-outline-primary">+ New Premise</a>
+  </div>
+  <div class="card-body" style="padding: 0;">
+    {% if premises %}
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Premise Name</th>
+              <th>Address</th>
+              <th>Team</th>
+              <th>Date / Time</th>
+              <th>Evidences</th>
+              <th style="text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in premises %}
+              <tr>
+                <td><strong>{{ p.premise_id }}</strong></td>
+                <td>
+                  <a href="{{ url_for('premise_detail', premise_id=p.premise_id) }}" style="font-weight: 600; color: var(--primary);">
+                    {{ p.premise_name }}
+                  </a>
+                </td>
+                <td style="font-size: 0.85rem;">{{ p.address }}</td>
+                <td style="font-size: 0.85rem; color: var(--text-muted);">{{ p.team }}</td>
+                <td style="font-size: 0.85rem;">{{ p.date }} {{ p.time }}</td>
+                <td>
+                  <span class="badge" style="background: #e0f2fe; color: #0369a1;">
+                    {{ p.evidence_count }} Physical
+                  </span>
+                  {% if search.jurisdiction == 'Delhi' and p.cloud_count > 0 %}
+                    <span class="badge" style="background: #fef3c7; color: #92400e;">
+                      {{ p.cloud_count }} Cloud
+                    </span>
+                  {% endif %}
+                </td>
+                <td style="text-align: right;">
+                  <a href="{{ url_for('premise_detail', premise_id=p.premise_id) }}" class="btn btn-sm btn-outline-primary">Open Premise</a>
+                  <a href="{{ url_for('edit_premise', premise_id=p.premise_id) }}" class="btn btn-sm btn-secondary">Edit</a>
+                  <form action="{{ url_for('delete_premise', premise_id=p.premise_id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Delete this premise and all its evidences?');">
+                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <p>No premises added under this search operation yet.</p>
+        <a href="{{ url_for('new_premise', search_id=search.search_id) }}" class="btn btn-primary">+ Add First Premise</a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

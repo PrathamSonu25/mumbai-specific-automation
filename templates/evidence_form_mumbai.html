@@ -1,0 +1,684 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit Device' if evidence else 'New Evidence Device' }} | Mumbai Evidence Automation{% endblock %}
+
+{% block content %}
+<div class="breadcrumbs">
+  <a href="{{ url_for('index') }}">Searches</a>
+  <span>/</span>
+  <a href="{{ url_for('search_detail', search_id=search.search_id) }}">{{ search.case_name }}</a>
+  <span>/</span>
+  <a href="{{ url_for('premise_detail', premise_id=premise.premise_id) }}">{{ premise.premise_name }}</a>
+  <span>/</span>
+  <span>{{ 'Edit Mumbai Device ' ~ evidence.evidence_id if evidence else 'New Mumbai Evidence' }}</span>
+</div>
+
+<div class="card" style="max-width: 980px; margin: 0 auto 2.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border-radius: 12px; border: 1px solid #e2e8f0;">
+  <div class="card-header" style="background: linear-gradient(135deg, #1e1b4b, #312e81); color: white; padding: 1.25rem 1.75rem; border-radius: 12px 12px 0 0;">
+    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+      <div>
+        <h2 style="font-size: 1.25rem; font-weight: 700; margin: 0 0 0.25rem; color: #ffffff;">
+          {{ 'Edit Mumbai Evidence Device (' ~ evidence.evidence_id ~ ')' if evidence else 'Record New Digital Evidence — Mumbai' }}
+        </h2>
+        <p style="font-size: 0.82rem; margin: 0; color: #c7d2fe;">
+          Annexure 1 (Physical Inventory), Annexure 3 (COC), Collection Form & BSA Sec 63(4)(c) Certificate
+        </p>
+      </div>
+      <span class="badge" style="background: rgba(255,255,255,0.2); color: #fff; font-size: 0.85rem; padding: 0.35rem 0.85rem; border-radius: 20px; font-weight: 600;">
+        📍 MUMBAI SPECIFIC
+      </span>
+    </div>
+  </div>
+
+  <div class="card-body" style="padding: 2rem;">
+    <form method="POST" id="mumbai-evidence-form">
+      <div class="form-grid">
+
+        <!-- 1. CATEGORY SELECTION -->
+        <div class="form-section-title" style="grid-column: 1 / -1; display: flex; align-items: center; gap: 0.5rem; font-size: 1.05rem; font-weight: 700; color: #1e3a8a; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 0.75rem;">
+          <span>1. Evidence Category</span>
+        </div>
+
+        <div class="form-group full-width" style="margin-bottom: 1rem;">
+          <label class="form-label" for="evidence_category" style="font-weight: 600; color: #334155;">Select Category *</label>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem;" id="category-pills">
+            {% set current_cat = evidence.evidence_category if evidence else 'Laptop' %}
+            {% for cat in categories %}
+              <button type="button" class="btn btn-sm cat-pill {% if current_cat == cat %}btn-primary active{% else %}btn-secondary{% endif %}" 
+                      data-cat="{{ cat }}" style="border-radius: 20px; padding: 0.4rem 1rem; font-size: 0.85rem; transition: all 0.2s;">
+                {% if cat == 'Laptop' %}💻 Laptop
+                {% elif cat == 'Desktop' %}🖥️ Desktop
+                {% elif cat == 'Mobile' %}📱 Mobile
+                {% elif cat == 'Harddisk' %}💾 Hard Disk
+                {% elif cat == 'Pendrive' %}🔌 Pen Drive
+                {% elif cat == 'Server' %}🖧 Server
+                {% elif cat == 'Cloud' %}☁️ Cloud
+                {% elif cat == 'File/Folder' %}📁 File/Folder
+                {% else %}📦 Other
+                {% endif %}
+              </button>
+            {% endfor %}
+          </div>
+          <select id="evidence_category" name="evidence_category" class="form-control" required style="display: none;">
+            {% for cat in categories %}
+              <option value="{{ cat }}" {% if current_cat == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- CLOUD INFO BANNER (Shown for Cloud) -->
+        <div id="cloud-info-box" style="display: none; grid-column: 1 / -1; background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 1rem 1.25rem; color: #166534; font-size: 0.9rem; line-height: 1.5; margin-bottom: 0.5rem;">
+          <strong style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.95rem;">
+            ☁️ Cloud / Email Evidence Mode Active
+          </strong>
+          <span style="font-size: 0.85rem; color: #15803d;">
+            Per Mumbai requirements, <strong>only Email ID</strong> is used for Cloud evidence. Hardware specs (Make, Model, Serial Number, Color, Shutdown states, Tenant ID, IP, Domain) are automatically streamlined.
+          </span>
+        </div>
+
+        <!-- 2. IDENTIFICATION -->
+        <div class="form-section-title" style="grid-column: 1 / -1; display: flex; align-items: center; gap: 0.5rem; font-size: 1.05rem; font-weight: 700; color: #1e3a8a; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-top: 0.75rem;">
+          <span>2. Identification & Location</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="device_name" id="label-device-name">Evidence / Device Name *</label>
+          <input type="text" id="device_name" name="device_name" class="form-control" 
+                 value="{{ evidence.device_name if evidence else '' }}" required 
+                 placeholder="e.g. Finance Director Laptop / CFO Mobile / CEO Mailbox" />
+          <small style="color: var(--text-muted); font-size: 0.75rem;">Populates into Annexure 1 Model Details and collection forms.</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="assessee_name">Assessee / Entity Name *</label>
+          <input type="text" id="assessee_name" name="assessee_name" class="form-control" 
+                 value="{{ evidence.assessee_name if evidence else search.case_name }}" required 
+                 placeholder="Company or individual name" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="location_found">Where Found / Location in Premise *</label>
+          <input type="text" id="location_found" name="location_found" class="form-control" 
+                 value="{{ evidence.location_found if evidence and evidence.location_found else '' }}" 
+                 placeholder="e.g. Trading Desk 4 / MD Cabin / Accounts Dept / Handbag" />
+          <small style="color: var(--text-muted); font-size: 0.75rem;">Populates into Annexure 1 Column 1 ("Nature Of Evidence Found").</small>
+        </div>
+
+        <!-- CLOUD SPECIFIC EMAIL FIELD (Strictly only Email ID!) -->
+        <div class="form-group" id="form-group-cloud-email" style="display: none;">
+          <label class="form-label" for="email_id" style="font-weight: 700; color: #0369a1;">Cloud / Mailbox Email ID *</label>
+          <input type="email" id="email_id" name="email_id" class="form-control" 
+                 value="{{ evidence.email_id if evidence else '' }}" 
+                 placeholder="e.g. ceo@marineequities.in" style="border-color: #38bdf8;" />
+          <small style="color: var(--text-muted); font-size: 0.75rem;">Strict SEBI Mumbai format: Only Email ID used for Cloud.</small>
+        </div>
+
+        <!-- 3. PHYSICAL HARDWARE SPECS (Hidden for Cloud & File/Folder) -->
+        <div id="section-hardware" style="grid-column: 1 / -1;" class="form-grid">
+          <div class="form-section-title" style="grid-column: 1 / -1; display: flex; align-items: center; gap: 0.5rem; font-size: 1.05rem; font-weight: 700; color: #1e3a8a; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-top: 0.75rem;">
+            <span>3. Hardware Specifications</span>
+          </div>
+
+          <div class="form-group" id="fg-make">
+            <label class="form-label" for="make">Make / Manufacturer</label>
+            <input type="text" id="make" name="make" class="form-control" 
+                   value="{{ evidence.make if evidence else '' }}" placeholder="e.g. Dell, Apple, Lenovo, HP" />
+          </div>
+
+          <div class="form-group" id="fg-model">
+            <label class="form-label" for="model">Model</label>
+            <input type="text" id="model" name="model" class="form-control" 
+                   value="{{ evidence.model if evidence else '' }}" placeholder="e.g. ThinkPad X1 Carbon / iPhone 15 Pro" />
+          </div>
+
+          <div class="form-group" id="fg-serial">
+            <label class="form-label" for="serial_number">Serial Number *</label>
+            <input type="text" id="serial_number" name="serial_number" class="form-control" 
+                   value="{{ evidence.serial_number if evidence else '' }}" 
+                   placeholder="Hardware Serial Number" />
+          </div>
+
+          <div class="form-group" id="fg-capacity">
+            <label class="form-label" for="capacity">Storage Capacity</label>
+            <input type="text" id="capacity" name="capacity" class="form-control" 
+                   value="{{ evidence.capacity if evidence else '' }}" placeholder="e.g. 512 GB SSD / 2 TB HDD" />
+          </div>
+
+          <div class="form-group" id="fg-color">
+            <label class="form-label" for="color">Device Color</label>
+            <input type="text" id="color" name="color" class="form-control" 
+                   value="{{ evidence.color if evidence else '' }}" placeholder="e.g. Space Grey / Midnight Black" />
+          </div>
+
+          <div class="form-group" id="fg-os">
+            <label class="form-label" for="os">Operating System</label>
+            <input type="text" id="os" name="os" class="form-control" 
+                   value="{{ evidence.os if evidence else '' }}" placeholder="e.g. Windows 11 Pro / iOS 17 / Ubuntu 24" />
+          </div>
+        </div>
+
+        <!-- 4. POSSESSION & OWNERSHIP -->
+        <div class="form-section-title" style="grid-column: 1 / -1; display: flex; align-items: center; gap: 0.5rem; font-size: 1.05rem; font-weight: 700; color: #1e3a8a; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-top: 0.75rem;">
+          <span>4. Possession & Ownership Details</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="owner_user">Found in Possession of / User</label>
+          <input type="text" id="owner_user" name="owner_user" class="form-control" 
+                 value="{{ evidence.owner_user if evidence else '' }}" placeholder="Name of individual possessing / using device" />
+          <small style="color: var(--text-muted); font-size: 0.75rem;">Populates into Annexure 1 Column 3.</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="is_owner">Is the Owner of this Device?</label>
+          <select id="is_owner" name="is_owner" class="form-control">
+            <option value="Yes" {% if not evidence or evidence.is_owner != 'No' %}selected{% endif %}>Yes</option>
+            <option value="No" {% if evidence and evidence.is_owner == 'No' %}selected{% endif %}>No</option>
+          </select>
+          <small style="color: var(--text-muted); font-size: 0.75rem;">Per Mumbai rule: If Yes, prints Owner Name in Annexure 1 Column 4.</small>
+        </div>
+
+        <div class="form-group" id="fg-owner-name">
+          <label class="form-label" for="owner_name">Owner Name (If Owner is Yes)</label>
+          <input type="text" id="owner_name" name="owner_name" class="form-control" 
+                 value="{{ evidence.owner_user if evidence and evidence.is_owner != 'No' else (evidence.party_name if evidence else '') }}" 
+                 placeholder="Name of device owner" />
+          <small style="color: var(--text-muted); font-size: 0.75rem;">If empty, automatically takes the User Name above.</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="owner_relation">User Relation to Target Group</label>
+          <input type="text" id="owner_relation" name="owner_relation" class="form-control" 
+                 value="{{ evidence.owner_relation if evidence else '' }}" placeholder="e.g. Managing Director / Trader / Director" />
+        </div>
+
+        <!-- 5. MOBILE SPECIFICATIONS (Shown ONLY for Mobile) -->
+        <div id="section-mobile" style="display: none; grid-column: 1 / -1;" class="form-grid">
+          <div class="form-section-title" style="grid-column: 1 / -1; display: flex; align-items: center; gap: 0.5rem; font-size: 1.05rem; font-weight: 700; color: #166534; border-bottom: 2px solid #bbf7d0; padding-bottom: 0.5rem; margin-top: 0.75rem;">
+            <span>📱 Mobile Phone Specifications</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="imei1">IMEI 1 *</label>
+            <input type="text" id="imei1" name="imei1" class="form-control" 
+                   value="{{ evidence.imei1 if evidence else '' }}" placeholder="15-digit Primary IMEI" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="imei2">IMEI 2</label>
+            <input type="text" id="imei2" name="imei2" class="form-control" 
+                   value="{{ evidence.imei2 if evidence else '' }}" placeholder="15-digit Secondary IMEI (if dual SIM)" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="sim_card_present">SIM Card Present?</label>
+            <select id="sim_card_present" name="sim_card_present" class="form-control">
+              <option value="Y" {% if not evidence or evidence.sim_card_present == 'Y' %}selected{% endif %}>Yes</option>
+              <option value="N" {% if evidence and evidence.sim_card_present == 'N' %}selected{% endif %}>No</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="sim_provider">SIM Provider</label>
+            <input type="text" id="sim_provider" name="sim_provider" class="form-control" 
+                   value="{{ evidence.sim_provider if evidence else '' }}" placeholder="e.g. Jio / Airtel / Vodafone" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="imsi">IMSI Number</label>
+            <input type="text" id="imsi" name="imsi" class="form-control" 
+                   value="{{ evidence.imsi if evidence else '' }}" placeholder="SIM IMSI Identifier" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="media_card_present">Media / MicroSD Card Present?</label>
+            <select id="media_card_present" name="media_card_present" class="form-control">
+              <option value="N" {% if not evidence or evidence.media_card_present == 'N' %}selected{% endif %}>No</option>
+              <option value="Y" {% if evidence and evidence.media_card_present == 'Y' %}selected{% endif %}>Yes</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="media_card_make">Media Card Details</label>
+            <input type="text" id="media_card_make" name="media_card_make" class="form-control" 
+                   value="{{ evidence.media_card_make if evidence else '' }}" placeholder="e.g. SanDisk Extreme 128GB" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="mobile_state">Mobile Phone State</label>
+            <select id="mobile_state" name="mobile_state" class="form-control">
+              <option value="On" {% if evidence and evidence.mobile_state == 'On' %}selected{% endif %}>On</option>
+              <option value="Off" {% if evidence and evidence.mobile_state == 'Off' %}selected{% endif %}>Off</option>
+              <option value="Offline" {% if not evidence or evidence.mobile_state == 'Offline' %}selected{% endif %}>Offline (Flight Mode)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 6. BOOT & SHUTDOWN STATE (Laptop / Desktop / Server) -->
+        <div id="section-boot" style="grid-column: 1 / -1;" class="form-grid">
+          <div class="form-section-title" style="grid-column: 1 / -1; display: flex; align-items: center; gap: 0.5rem; font-size: 1.05rem; font-weight: 700; color: #1e3a8a; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-top: 0.75rem;">
+            <span>5. Boot, Hibernation & Screen State</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="hibernation_sleep">Hibernation / Sleep State</label>
+            <select id="hibernation_sleep" name="hibernation_sleep" class="form-control">
+              <option value="Off" {% if not evidence or evidence.hibernation_sleep == 'Off' %}selected{% endif %}>Off</option>
+              <option value="On" {% if evidence and evidence.hibernation_sleep == 'On' %}selected{% endif %}>On</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="shutdown_type">Shutdown Type</label>
+            <select id="shutdown_type" name="shutdown_type" class="form-control">
+              <option value="Normal" {% if not evidence or evidence.shutdown_type == 'Normal' %}selected{% endif %}>Normal</option>
+              <option value="PowerPlugPulled" {% if evidence and evidence.shutdown_type == 'PowerPlugPulled' %}selected{% endif %}>Power Plug Pulled</option>
+              <option value="BatteryRemoved" {% if evidence and evidence.shutdown_type == 'BatteryRemoved' %}selected{% endif %}>Battery Removed</option>
+            </select>
+          </div>
+
+          <div class="form-group full-width">
+            <label class="form-label" for="visible_on_screen">Visible on Screen (if switched on)</label>
+            <input type="text" id="visible_on_screen" name="visible_on_screen" class="form-control" 
+                   value="{{ evidence.visible_on_screen if evidence else '' }}" placeholder="Describe screen contents, e.g. Desktop screen with Excel accounting sheet" />
+          </div>
+        </div>
+
+        <!-- 7. SECURITY & HANDLING (Physical devices) -->
+        <div id="section-security" style="grid-column: 1 / -1;" class="form-grid">
+          <div class="form-section-title" style="grid-column: 1 / -1; display: flex; align-items: center; gap: 0.5rem; font-size: 1.05rem; font-weight: 700; color: #1e3a8a; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-top: 0.75rem;">
+            <span>6. Encryption & Device Handling</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="encryption_present">Encryption Present?</label>
+            <select id="encryption_present" name="encryption_present" class="form-control">
+              <option value="N" {% if not evidence or evidence.encryption_present == 'N' %}selected{% endif %}>No</option>
+              <option value="Y" {% if evidence and evidence.encryption_present == 'Y' %}selected{% endif %}>Yes</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="encryption_software">Encryption Software Used</label>
+            <input type="text" id="encryption_software" name="encryption_software" class="form-control" 
+                   value="{{ evidence.encryption_software if evidence else 'None' }}" placeholder="e.g. BitLocker, FileVault, VeraCrypt" />
+          </div>
+
+          <div class="form-group full-width">
+            <label class="form-label">Device Handling (Select applicable)</label>
+            <div class="form-check-group" style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+              {% set curr_handling = (evidence.device_handling.split(',') if evidence and evidence.device_handling else ['Imaging', 'Seizure'])|map('trim')|list %}
+              {% for opt in handling_options %}
+                <label class="form-check" style="display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+                  <input type="checkbox" name="device_handling_opts" value="{{ opt }}" 
+                         {% if opt in curr_handling %}checked{% endif %} />
+                  <span>{{ opt }}</span>
+                </label>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="form-group full-width">
+            <label class="form-label" for="imaging_tools_details">Imaging Tools & Details</label>
+            <input type="text" id="imaging_tools_details" name="imaging_tools_details" class="form-control" 
+                   value="{{ evidence.imaging_tools_details if evidence else 'Tableau TX1 Hardware Imager / FTK Imager' }}" 
+                   placeholder="e.g. Tableau TX1 Hardware Imager / Cellebrite UFED / FTK Imager v4.7" />
+          </div>
+        </div>
+
+        <!-- 8. FORENSIC HASH VALUES -->
+        <div class="form-section-title" style="grid-column: 1 / -1; display: flex; align-items: center; gap: 0.5rem; font-size: 1.05rem; font-weight: 700; color: #1e3a8a; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-top: 0.75rem;">
+          <span>7. Forensic Hashes (BSA 2023 Compliance)</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="hash_algorithm">Primary Hash Algorithm</label>
+          <select id="hash_algorithm" name="hash_algorithm" class="form-control">
+            {% for algo in hash_algorithms %}
+              <option value="{{ algo }}" {% if evidence and evidence.hash_algorithm == algo %}selected{% elif not evidence and algo == 'SHA256' %}selected{% endif %}>
+                {{ algo }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="sha256_hash_1">SHA-256 Hash Value *</label>
+          <input type="text" id="sha256_hash_1" name="sha256_hash_1" class="form-control" 
+                 value="{{ evidence.sha256_hash_1 if evidence else '' }}" placeholder="64-character SHA-256 hash" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="sha1_hash">SHA-1 Hash Value</label>
+          <input type="text" id="sha1_hash" name="sha1_hash" class="form-control" 
+                 value="{{ evidence.sha1_hash if evidence else '' }}" placeholder="40-character SHA-1 hash" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="md5_hash">MD5 Hash Value</label>
+          <input type="text" id="md5_hash" name="md5_hash" class="form-control" 
+                 value="{{ evidence.md5_hash if evidence else '' }}" placeholder="32-character MD5 hash" />
+        </div>
+
+        <!-- Extra SHA-256 Hashes for Mobile (up to 5) -->
+        <div id="extra-sha-section" style="display: none; grid-column: 1 / -1;" class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="sha256_hash_2">SHA-256 Hash 2 (Mobile)</label>
+            <input type="text" id="sha256_hash_2" name="sha256_hash_2" class="form-control" value="{{ evidence.sha256_hash_2 if evidence else '' }}" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="sha256_hash_3">SHA-256 Hash 3 (Mobile)</label>
+            <input type="text" id="sha256_hash_3" name="sha256_hash_3" class="form-control" value="{{ evidence.sha256_hash_3 if evidence else '' }}" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="sha256_hash_4">SHA-256 Hash 4 (Mobile)</label>
+            <input type="text" id="sha256_hash_4" name="sha256_hash_4" class="form-control" value="{{ evidence.sha256_hash_4 if evidence else '' }}" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="sha256_hash_5">SHA-256 Hash 5 (Mobile)</label>
+            <input type="text" id="sha256_hash_5" name="sha256_hash_5" class="form-control" value="{{ evidence.sha256_hash_5 if evidence else '' }}" />
+          </div>
+        </div>
+
+        <!-- 9. DESTINATION STORAGE (MASTER & WORKING COPIES) -->
+        <div class="form-section-title" style="grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; font-size: 1.05rem; font-weight: 700; color: #1e3a8a; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-top: 0.75rem;">
+          <span>8. Target Copies (Master & Working Copy HDDs)</span>
+          <span style="font-size: 0.75rem; color: #64748b; font-weight: normal;">Populates Annexure 3 COC Unique Copy Register</span>
+        </div>
+
+        <!-- Master Copy -->
+        <div class="form-group">
+          <label class="form-label" for="master_copy_make">Master Copy Make</label>
+          <input type="text" id="master_copy_make" name="master_copy_make" class="form-control" 
+                 value="{{ evidence.master_copy_make if evidence else 'Western Digital' }}" placeholder="e.g. Western Digital" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="master_copy_model">Master Copy Model</label>
+          <input type="text" id="master_copy_model" name="master_copy_model" class="form-control" 
+                 value="{{ evidence.master_copy_model if evidence else 'My Passport Enterprise' }}" placeholder="e.g. My Passport Enterprise" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="master_copy_sn" style="font-weight: 700; color: #1e40af;">Master Copy Serial Number *</label>
+          <input type="text" id="master_copy_sn" name="master_copy_sn" class="form-control" 
+                 value="{{ evidence.master_copy_sn if evidence else '' }}" placeholder="e.g. 134567890" style="border-color: #93c5fd;" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="master_copy_capacity">Master Copy Capacity</label>
+          <input type="text" id="master_copy_capacity" name="master_copy_capacity" class="form-control" 
+                 value="{{ evidence.master_copy_capacity if evidence else '4 TB' }}" placeholder="e.g. 4 TB USB 3.0" />
+        </div>
+
+        <!-- Working Copy -->
+        <div class="form-group">
+          <label class="form-label" for="working_copy_make">Working Copy Make</label>
+          <input type="text" id="working_copy_make" name="working_copy_make" class="form-control" 
+                 value="{{ evidence.working_copy_make if evidence else 'Seagate' }}" placeholder="e.g. Seagate" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="working_copy_model">Working Copy Model</label>
+          <input type="text" id="working_copy_model" name="working_copy_model" class="form-control" 
+                 value="{{ evidence.working_copy_model if evidence else 'One Touch SSD' }}" placeholder="e.g. One Touch SSD" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="working_copy_sn" style="font-weight: 700; color: #1e40af;">Working Copy Serial Number *</label>
+          <input type="text" id="working_copy_sn" name="working_copy_sn" class="form-control" 
+                 value="{{ evidence.working_copy_sn if evidence else '' }}" placeholder="e.g. 2345678909" style="border-color: #93c5fd;" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="working_copy_capacity">Working Copy Capacity</label>
+          <input type="text" id="working_copy_capacity" name="working_copy_capacity" class="form-control" 
+                 value="{{ evidence.working_copy_capacity if evidence else '4 TB' }}" placeholder="e.g. 4 TB USB-C" />
+        </div>
+
+        <!-- 10. DEVICE RETURN & WITNESS -->
+        <div class="form-section-title" style="grid-column: 1 / -1; display: flex; align-items: center; gap: 0.5rem; font-size: 1.05rem; font-weight: 700; color: #1e3a8a; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-top: 0.75rem;">
+          <span>9. Device Return & Verification Status</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="device_returned">Device Returned to Original State?</label>
+          <select id="device_returned" name="device_returned" class="form-control">
+            <option value="Y" {% if not evidence or evidence.device_returned == 'Y' %}selected{% endif %}>Yes</option>
+            <option value="N" {% if evidence and evidence.device_returned == 'N' %}selected{% endif %}>No (Retained / Seized)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="returned_date">Returned Date & Time</label>
+          <input type="text" id="returned_date" name="returned_date" class="form-control" 
+                 value="{{ evidence.returned_date if evidence else '' }}" placeholder="DD/MM/YYYY HH:MM" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="witness_signature_taken">Witness Signature Taken?</label>
+          <select id="witness_signature_taken" name="witness_signature_taken" class="form-control">
+            <option value="Y" {% if not evidence or evidence.witness_signature_taken == 'Y' %}selected{% endif %}>Yes</option>
+            <option value="N" {% if evidence and evidence.witness_signature_taken == 'N' %}selected{% endif %}>No</option>
+          </select>
+        </div>
+
+        <!-- 11. BSA 2023 CERTIFICATE & SIGNATORIES -->
+        <div class="form-section-title" style="grid-column: 1 / -1; display: flex; align-items: center; gap: 0.5rem; font-size: 1.05rem; font-weight: 700; color: #1e3a8a; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-top: 0.75rem;">
+          <span>10. BSA 2023 Sec 63(4)(c) Certificate & Signatory Details</span>
+        </div>
+
+        <div class="form-group full-width">
+          <label class="form-label" for="other_specific_notes">Evidentiary Notes / Relevant Information (for BSA Sec 63(4)(c) Certificate)</label>
+          <input type="text" id="other_specific_notes" name="other_specific_notes" class="form-control" 
+                 value="{{ evidence.other_specific_notes if evidence else '' }}" 
+                 placeholder="e.g. Device retrieved and imaged in regular course of official business" />
+          <small style="color: var(--text-muted); font-size: 0.78rem;">Populates into BSA Certificate's 'and any other relevant information, if any, about the device/digital record (specify)'.</small>
+        </div>
+
+        <div class="form-group full-width">
+          <label class="form-label">Lawful Device Control (Part A - Party Declaration)</label>
+          <div class="form-check-group" style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+            {% set curr_control = (evidence.device_control.split(',') if evidence and evidence.device_control else ['Owned', 'Maintained'])|map('trim')|list %}
+            {% for opt in control_options %}
+              <label class="form-check" style="display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+                <input type="checkbox" name="device_control_opts" value="{{ opt }}" 
+                       {% if opt in curr_control %}checked{% endif %} />
+                <span>{{ opt }}</span>
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="party_name">Part A Signatory (Party / Assessee Name)</label>
+          <input type="text" id="party_name" name="party_name" class="form-control" 
+                 value="{{ evidence.party_name if evidence and evidence.party_name else (evidence.assessee_name if evidence else search.case_name) }}" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="party_relation">Party Relation / Designation</label>
+          <input type="text" id="party_relation" name="party_relation" class="form-control" 
+                 value="{{ evidence.party_relation if evidence else 'Authorized Signatory / Director' }}" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="party_residing_at">Party Address / Employed At</label>
+          <input type="text" id="party_residing_at" name="party_residing_at" class="form-control" 
+                 value="{{ evidence.party_residing_at if evidence else premise.address }}" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="expert_name">Part B Signatory (Forensic Expert Name)</label>
+          <input type="text" id="expert_name" name="expert_name" class="form-control" 
+                 value="{{ evidence.expert_name if evidence and evidence.expert_name else (evidence.examiner_name if evidence else 'Forensic Expert') }}" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="expert_father_name">Expert Father / Spouse Name *</label>
+          <input type="text" id="expert_father_name" name="expert_father_name" class="form-control" 
+                 value="{{ evidence.expert_father_name if evidence else '' }}" placeholder="Son / Daughter / Spouse of" />
+          <small style="color: var(--text-muted); font-size: 0.75rem;">Required for Mumbai BSA Sec 63(4)(c) Part B preamble.</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="expert_designation">Expert Designation</label>
+          <input type="text" id="expert_designation" name="expert_designation" class="form-control" 
+                 value="{{ evidence.expert_designation if evidence else 'Senior Digital Forensic Examiner' }}" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="cert_place">Certificate Place</label>
+          <input type="text" id="cert_place" name="cert_place" class="form-control" 
+                 value="{{ evidence.cert_place if evidence else premise.premise_name }}" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="collection_date">Collection Date</label>
+          <input type="date" id="collection_date" name="collection_date" class="form-control" 
+                 value="{{ evidence.collection_date if evidence else premise.date }}" />
+        </div>
+
+        <!-- Hidden inputs for Mumbai auto-fields -->
+        <input type="hidden" id="collection_time" name="collection_time" 
+               value="{{ evidence.collection_time if evidence and evidence.collection_time else (premise.time or '') }}" />
+        <input type="hidden" id="authorised_officer" name="authorised_officer" 
+               value="{{ evidence.authorised_officer if evidence else search.authorised_officer }}" />
+
+      </div>
+
+      <div class="form-actions" style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem; border-top: 1px solid #e2e8f0; padding-top: 1.5rem;">
+        <a href="{{ url_for('premise_detail', premise_id=premise.premise_id) }}" class="btn btn-secondary" style="padding: 0.6rem 1.4rem;">
+          Cancel
+        </a>
+        <button type="submit" class="btn btn-primary" style="padding: 0.6rem 1.8rem; font-weight: 600; background: #1e3a8a; border-color: #1e3a8a;">
+          💾 Save Mumbai Evidence & Update Register
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const catSelect = document.getElementById("evidence_category");
+  const pills = document.querySelectorAll("#category-pills .cat-pill");
+
+  const cloudBox = document.getElementById("cloud-info-box");
+  const cloudEmailGroup = document.getElementById("form-group-cloud-email");
+  const hardwareSection = document.getElementById("section-hardware");
+  const mobileSection = document.getElementById("section-mobile");
+  const extraShaSection = document.getElementById("extra-sha-section");
+  const bootSection = document.getElementById("section-boot");
+  const securitySection = document.getElementById("section-security");
+  const colorGroup = document.getElementById("fg-color");
+  const osGroup = document.getElementById("fg-os");
+
+  const isOwnerSelect = document.getElementById("is_owner");
+  const ownerNameGroup = document.getElementById("fg-owner-name");
+  const ownerUserInput = document.getElementById("owner_user");
+  const ownerNameInput = document.getElementById("owner_name");
+  const serialInput = document.getElementById("serial_number");
+  const emailInput = document.getElementById("email_id");
+
+  function applyCategoryUI(cat) {
+    // 1. Update pills
+    pills.forEach(p => {
+      if (p.getAttribute("data-cat") === cat) {
+        p.classList.add("btn-primary", "active");
+        p.classList.remove("btn-secondary");
+      } else {
+        p.classList.remove("btn-primary", "active");
+        p.classList.add("btn-secondary");
+      }
+    });
+
+    const isCloud = (cat === "Cloud");
+    const isMobile = (cat === "Mobile");
+    const isComputer = ["Laptop", "Desktop", "Server"].includes(cat);
+    const isStorage = ["Harddisk", "Pendrive"].includes(cat);
+    const isFile = (cat === "File/Folder");
+
+    // 2. Cloud Mode (ONLY Email ID!)
+    if (cloudBox) cloudBox.style.display = isCloud ? "block" : "none";
+    if (cloudEmailGroup) cloudEmailGroup.style.display = isCloud ? "block" : "none";
+
+    // 3. Hardware Specs
+    if (hardwareSection) {
+      hardwareSection.style.display = (isCloud || isFile) ? "none" : "contents";
+    }
+
+    // Color & OS visibility
+    if (colorGroup) {
+      colorGroup.style.display = (isCloud || isFile || isStorage) ? "none" : "block";
+    }
+    if (osGroup) {
+      osGroup.style.display = (isCloud || isFile || isStorage) ? "none" : "block";
+    }
+
+    // 4. Mobile specifics
+    if (mobileSection) mobileSection.style.display = isMobile ? "contents" : "none";
+    if (extraShaSection) extraShaSection.style.display = isMobile ? "contents" : "none";
+
+    // 5. Boot / Hibernation
+    if (bootSection) bootSection.style.display = isComputer ? "contents" : "none";
+
+    // 6. Security & Handling
+    if (securitySection) securitySection.style.display = (isComputer || isStorage || isMobile) ? "contents" : "none";
+  }
+
+  // Pill click handlers
+  pills.forEach(p => {
+    p.addEventListener("click", function () {
+      const cat = this.getAttribute("data-cat");
+      if (catSelect) {
+        catSelect.value = cat;
+        applyCategoryUI(cat);
+      }
+    });
+  });
+
+  if (catSelect) {
+    catSelect.addEventListener("change", function () {
+      applyCategoryUI(this.value);
+    });
+    applyCategoryUI(catSelect.value);
+  }
+
+  // Ownership toggle
+  function updateOwnerUI() {
+    if (!isOwnerSelect || !ownerNameGroup) return;
+    if (isOwnerSelect.value === "Yes") {
+      ownerNameGroup.style.display = "block";
+      if (ownerUserInput && ownerNameInput && !ownerNameInput.value) {
+        ownerNameInput.value = ownerUserInput.value;
+      }
+    } else {
+      ownerNameGroup.style.display = "none";
+    }
+  }
+
+  if (isOwnerSelect) {
+    isOwnerSelect.addEventListener("change", updateOwnerUI);
+    updateOwnerUI();
+  }
+
+  if (ownerUserInput && ownerNameInput) {
+    ownerUserInput.addEventListener("input", function () {
+      if (isOwnerSelect && isOwnerSelect.value === "Yes" && !ownerNameInput.dataset.touched) {
+        ownerNameInput.value = this.value;
+      }
+    });
+    ownerNameInput.addEventListener("input", function () {
+      this.dataset.touched = "true";
+    });
+  }
+
+  // Form submit auto-filling for Cloud S/N
+  const form = document.getElementById("mumbai-evidence-form");
+  if (form) {
+    form.addEventListener("submit", function () {
+      if (catSelect && catSelect.value === "Cloud") {
+        if (emailInput && (!serialInput.value || serialInput.value.trim() === "")) {
+          serialInput.value = emailInput.value || "CLOUD-MAIL";
+        }
+      }
+    });
+  }
+});
+</script>
+{% endblock %}

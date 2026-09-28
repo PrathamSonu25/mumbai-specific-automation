@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}{{ premise.premise_name }} |  Evidence Automation{% endblock %}
+
+{% block content %}
+<div class="breadcrumbs">
+  <a href="{{ url_for('index') }}">Searches</a>
+  <span>/</span>
+  <a href="{{ url_for('search_detail', search_id=search.search_id) }}">{{ search.case_name }}</a>
+  <span>/</span>
+  <span>{{ premise.premise_name }} ({{ premise.premise_id }})</span>
+</div>
+
+<div class="page-header">
+  <div>
+    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.25rem;">
+      <h1 class="page-title">{{ premise.premise_name }}</h1>
+      <span class="badge badge-{{ search.jurisdiction|lower }}">{{ search.jurisdiction }}</span>
+      <span class="badge" style="background: #f1f5f9; color: #475569;">{{ premise.premise_id }}</span>
+    </div>
+    <p style="color: var(--text-muted); font-size: 0.85rem;">
+      Address: <strong>{{ premise.address }}</strong> | Team: <strong>{{ premise.team or 'Not specified' }}</strong>
+    </p>
+  </div>
+  <div class="page-actions">
+    {% if search.jurisdiction == 'Mumbai' %}
+      <!-- Mumbai Annexure 1 (Physical Inventory - Each device single page) -->
+      {% if evidences %}
+        <a href="{{ url_for('generate_mumbai_annexure_1_route', premise_id=premise.premise_id) }}" class="btn btn-warning" style="font-weight: 600;">
+          📋 Generate Inventory (Annexure 1)
+        </a>
+        <a href="{{ url_for('generate_mumbai_annexure_3_route', premise_id=premise.premise_id) }}" class="btn btn-primary" style="font-weight: 600;">
+          🔗 Generate COC (Annexure 3)
+        </a>
+      {% endif %}
+    {% else %}
+      <!-- Annexure G (Inventory) - Gujarat & Delhi -->
+      <a href="{{ url_for('generate_premise_g', premise_id=premise.premise_id) }}" class="btn btn-warning" style="font-weight: 600;">
+        📋 Generate Inventory (Annexure G)
+      </a>
+
+      <!-- Annexure F (Cloud) - Delhi only -->
+      {% if search.jurisdiction == 'Delhi' and cloud_evidences %}
+        <a href="{{ url_for('generate_premise_f', premise_id=premise.premise_id) }}" class="btn btn-success" style="color: white; font-weight: 600;">
+          ☁️ Generate Cloud Evidence (Annexure F)
+        </a>
+      {% endif %}
+    {% endif %}
+
+    <a href="{{ url_for('new_evidence', premise_id=premise.premise_id) }}" class="btn btn-primary">
+      + Add Device / Evidence
+    </a>
+    
+    {% if search.jurisdiction == 'Delhi' %}
+      <a href="{{ url_for('new_cloud_evidence', premise_id=premise.premise_id) }}" class="btn btn-outline-primary">
+        + Add Cloud / Email
+      </a>
+    {% endif %}
+
+    <a href="{{ url_for('edit_premise', premise_id=premise.premise_id) }}" class="btn btn-secondary">Edit Premise</a>
+  </div>
+</div>
+
+<!-- Physical Evidences Card -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Physical Digital Evidences ({{ evidences|length }})</span>
+    <a href="{{ url_for('new_evidence', premise_id=premise.premise_id) }}" class="btn btn-sm btn-outline-primary">
+      + Add Device
+    </a>
+  </div>
+  <div class="card-body" style="padding: 0;">
+    {% if evidences %}
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Category</th>
+              <th>Device Name</th>
+              <th>Make & Model</th>
+              <th>Serial Number</th>
+              <th>Assessee / User</th>
+              <th>Sub-Items</th>
+              <th>Custody Logs</th>
+              <th style="text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ev in evidences %}
+              <tr>
+                <td><strong>{{ ev.evidence_id }}</strong></td>
+                <td>
+                  <span class="badge badge-{{ ev.evidence_category|lower }}">
+                    {{ ev.evidence_category }}
+                  </span>
+                </td>
+                <td>
+                  <a href="{{ url_for('edit_evidence', evidence_id=ev.evidence_id) }}" style="font-weight: 600; color: var(--primary);">
+                    {{ ev.device_name }}
+                  </a>
+                </td>
+                <td style="font-size: 0.85rem;">{{ ev.make }} {{ ev.model }}</td>
+                <td style="font-size: 0.85rem; font-family: monospace;">{{ ev.serial_number }}</td>
+                <td style="font-size: 0.85rem;">{{ ev.assessee_name }}<br><small style="color: var(--text-muted);">{{ ev.owner_user }}</small></td>
+                <td>
+                  {% if ev.sub_count > 0 %}
+                    <span class="badge" style="background: #e0f2fe; color: #0284c7;">
+                      {{ ev.sub_count }} Drive(s)
+                    </span>
+                  {% else %}
+                    <span style="color: #94a3b8; font-size: 0.8rem;">-</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="badge" style="background: #f1f5f9; color: #475569;">
+                    {{ ev.custody_count }} Row(s)
+                  </span>
+                </td>
+                <td style="text-align: right; white-space: nowrap;">
+                  <!-- Generate Documents button -->
+                  <a href="{{ url_for('generate_evidence_doc', evidence_id=ev.evidence_id) }}" class="btn btn-sm btn-success" title="Generate annexures for this device">
+                    📑 Generate Docs
+                  </a>
+                  <a href="{{ url_for('edit_evidence', evidence_id=ev.evidence_id) }}" class="btn btn-sm btn-secondary">
+                    Edit
+                  </a>
+                  <form action="{{ url_for('delete_evidence', evidence_id=ev.evidence_id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Delete this evidence and all its child records?');">
+                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <p>No physical digital evidences recorded at this premise yet.</p>
+        <a href="{{ url_for('new_evidence', premise_id=premise.premise_id) }}" class="btn btn-primary">+ Add First Device</a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Cloud Evidences Card (Delhi or if cloud entries exist) -->
+{% if search.jurisdiction == 'Delhi' or cloud_evidences %}
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Cloud / Email Evidence ({{ cloud_evidences|length }})</span>
+      <div style="display: flex; gap: 0.5rem;">
+        {% if cloud_evidences %}
+          <a href="{{ url_for('generate_premise_f', premise_id=premise.premise_id) }}" class="btn btn-sm btn-info" style="color: white;">
+            ☁️ Generate Annexure F
+          </a>
+        {% endif %}
+        <a href="{{ url_for('new_cloud_evidence', premise_id=premise.premise_id) }}" class="btn btn-sm btn-outline-primary">
+          + Add Cloud Item
+        </a>
+      </div>
+    </div>
+    <div class="card-body" style="padding: 0;">
+      {% if cloud_evidences %}
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>SN</th>
+                <th>Device / Account Imaged</th>
+                <th>Size of Data</th>
+                <th>Export Format</th>
+                <th>Source Platform</th>
+                <th style="text-align: right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for ce in cloud_evidences %}
+                <tr>
+                  <td><strong>{{ ce.sn or loop.index }}</strong></td>
+                  <td><strong>{{ ce.device_imaged }}</strong></td>
+                  <td>{{ ce.size_of_data }}</td>
+                  <td><span class="badge" style="background: #f1f5f9; color: #334155;">{{ ce.export_format }}</span></td>
+                  <td><span class="badge" style="background: #fef3c7; color: #92400e;">{{ ce.source }}</span></td>
+                  <td style="text-align: right;">
+                    <a href="{{ url_for('edit_cloud_evidence', cloud_id=ce.cloud_evidence_id) }}" class="btn btn-sm btn-secondary">Edit</a>
+                    <form action="{{ url_for('delete_cloud_evidence_route', cloud_id=ce.cloud_evidence_id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Delete this cloud evidence entry?');">
+                      <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <p>No cloud/email evidence entries logged yet for this premise.</p>
+          <a href="{{ url_for('new_cloud_evidence', premise_id=premise.premise_id) }}" class="btn btn-outline-primary">+ Add First Cloud Item</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

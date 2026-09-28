@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit Search' if search else 'New Search' }} | Evidence Automation{% endblock %}
+
+{% block content %}
+<div class="breadcrumbs">
+  <a href="{{ url_for('index') }}">Searches</a>
+  <span>/</span>
+  <span>{{ 'Edit Search ' ~ search.search_id if search else 'New Search' }}</span>
+</div>
+
+<div class="card" style="max-width: 700px; margin: 0 auto;">
+  <div class="card-header">
+    <span class="card-title">{{ 'Edit Search Details (' ~ search.search_id ~ ')' if search else 'Create New Search Operation' }}</span>
+  </div>
+  <div class="card-body">
+    <form method="POST">
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label class="form-label" for="case_name">Case Name / Operation Name *</label>
+          <input type="text" id="case_name" name="case_name" class="form-control" 
+                 value="{{ search.case_name if search else '' }}" required placeholder="e.g. Operation Alpha / ABC Securities Ltd" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="jurisdiction">Jurisdiction *</label>
+          <select id="jurisdiction" name="jurisdiction" class="form-control" required>
+            {% for jur in jurisdictions %}
+              <option value="{{ jur }}" {% if search and search.jurisdiction == jur %}selected{% endif %}>
+                {{ jur }}
+              </option>
+            {% endfor %}
+          </select>
+          <small style="color: var(--text-muted); font-size: 0.75rem;">
+            Drives annexure document routing rules
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="date">Date of Search *</label>
+          <input type="date" id="date" name="date" class="form-control" 
+                 value="{{ search.date if search else '' }}" required />
+        </div>
+
+        <div class="form-group full-width">
+          <label class="form-label" for="authorised_officer">Default Authorised Officer</label>
+          <input type="text" id="authorised_officer" name="authorised_officer" class="form-control" 
+                 value="{{ search.authorised_officer if search else '' }}" 
+                 placeholder="e.g. Shri R. K. Sharma, Deputy Director" />
+          <small style="color: var(--text-muted); font-size: 0.75rem;">
+            Can be overridden per evidence if needed
+          </small>
+        </div>
+
+        <div class="form-group full-width">
+          <label class="form-label" for="search_warrant_details">Search Warrant Details</label>
+          <input type="text" id="search_warrant_details" name="search_warrant_details" class="form-control" 
+                 value="{{ search.search_warrant_details if search and search.search_warrant_details else '' }}" 
+                 placeholder="e.g. SW/SEBI/WRO/2026/09/014 dt. 25/09/2026" />
+          <small style="color: var(--text-muted); font-size: 0.75rem;">
+            Appears on Chain of Custody (Annexure 3)
+          </small>
+        </div>
+
+        <div class="form-group full-width">
+          <label class="form-label" for="remarks">Remarks</label>
+          <textarea id="remarks" name="remarks" class="form-control" placeholder="Optional background context or notes">{{ search.remarks if search else '' }}</textarea>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">Save Search</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

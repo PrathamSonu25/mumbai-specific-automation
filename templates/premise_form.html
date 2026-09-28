@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit Premise' if premise else 'New Premise' }} | Evidence Automation{% endblock %}
+
+{% block content %}
+<div class="breadcrumbs">
+  <a href="{{ url_for('index') }}">Searches</a>
+  <span>/</span>
+  <a href="{{ url_for('search_detail', search_id=search.search_id) }}">{{ search.case_name }}</a>
+  <span>/</span>
+  <span>{{ 'Edit Premise ' ~ premise.premise_id if premise else 'New Premise' }}</span>
+</div>
+
+<div class="card" style="max-width: 700px; margin: 0 auto;">
+  <div class="card-header">
+    <span class="card-title">{{ 'Edit Premise (' ~ premise.premise_id ~ ')' if premise else 'Add Premise to Search (' ~ search.case_name ~ ')' }}</span>
+  </div>
+  <div class="card-body">
+    <form method="POST">
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label class="form-label" for="premise_name">Premise / Location Name *</label>
+          <input type="text" id="premise_name" name="premise_name" class="form-control" 
+                 value="{{ premise.premise_name if premise else '' }}" required 
+                 placeholder="e.g. Registered Office / Director Residence / Branch Office" />
+        </div>
+
+        <div class="form-group full-width">
+          <label class="form-label" for="address">Full Address *</label>
+          <textarea id="address" name="address" class="form-control" required 
+                    placeholder="Complete address including room/floor/building/city">{{ premise.address if premise else '' }}</textarea>
+        </div>
+
+        <div class="form-group full-width">
+          <label class="form-label" for="team">Search / Forensic Team Members</label>
+          <input type="text" id="team" name="team" class="form-control" 
+                 value="{{ premise.team if premise else '' }}" 
+                 placeholder="Comma-separated list of officers/examiners present, e.g. Shri A. Patel, Shri S. Raman" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="date">Date of Search at Premise *</label>
+          <input type="date" id="date" name="date" class="form-control" 
+                 value="{{ premise.date if premise else search.date }}" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="time">Time of Search Entry</label>
+          <input type="text" id="time" name="time" class="form-control" 
+                 value="{{ premise.time if premise else '10:00 AM' }}" 
+                 placeholder="e.g. 10:30 AM" />
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <a href="{{ url_for('search_detail', search_id=search.search_id) }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">Save Premise</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
